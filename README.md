@@ -1,2 +1,2 @@
-# chatter-reborn
-A different implementation of Chatter.
+# Chatter Reborn
+> A different implementation of Chatter.
