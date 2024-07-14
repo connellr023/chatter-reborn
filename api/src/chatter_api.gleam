@@ -10,6 +10,17 @@ import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import mist.{type Connection, type ResponseData}
 
+fn init_server(req: Request(Connection)) -> Response(ResponseData) {
+
+}
+
 pub fn main() {
-  io.println("Hello from chatter_api!")
+  let not_found = response.new(404) |> response.set_body(mist.Bytes(bytes_builder.new()))
+
+  let assert Ok(_) = init_server
+  |> mist.new
+  |> mist.port(3000)
+  |> mist.start_http
+
+  process.sleep_forever()
 }
