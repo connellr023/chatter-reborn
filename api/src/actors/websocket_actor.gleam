@@ -3,36 +3,35 @@ import gleam/http/response.{type Response}
 import gleam/erlang/process.{type Subject, type Selector}
 import gleam/option.{type Option}
 import gleam/otp/actor.{type Next}
-import actors/users_actor.{type UsersActorMessage}
 import mist.{
   type Connection,
   type ResponseData,
   type WebsocketMessage,
   type WebsocketConnection
 }
+import actors/supervisor_actor.{type SupervisorQuery}
 
-pub opaque type WebsocketActorState {
-  WebsocketActorState(
-    users_actor: Subject(UsersActorMessage)
-    // ...
-  )
-}
+/// There is a websocket actor for each client that is connected
+/// The websocket actor receives access to a subject that allows it to interface with the supervisor subject
 
-pub fn new_state(users_actor: Subject(UsersActorMessage)) -> WebsocketActorState {
-  WebsocketActorState(
-    users_actor: users_actor
-  )
-}
-
-pub fn upgrade_to_websocket(req: Request(Connection), initial_state: WebsocketActorState, selector: Option(Selector(t)), on_disconnect: fn(WebsocketActorState) -> Nil) -> Response(ResponseData) {
+pub fn upgrade_to_websocket(
+  req: Request(Connection),
+  supervisor_subject: Subject(SupervisorQuery),
+  selector: Option(Selector(t)),
+  on_disconnect: fn(Subject(SupervisorQuery)) -> Nil
+) -> Response(ResponseData) {
   mist.websocket(
     request: req,
-    on_init: fn(_conn) { #(initial_state, selector) },
+    on_init: fn(_) { #(supervisor_subject, selector) },
     on_close: on_disconnect,
     handler: handle_websocket_message
   )
 }
 
-fn handle_websocket_message(state: WebsocketActorState, connection: WebsocketConnection, message: WebsocketMessage(t)) -> Next(t, WebsocketActorState) {
+fn handle_websocket_message(
+  supervisor_subject: Subject(SupervisorQuery),
+  connection: WebsocketConnection,
+  message: WebsocketMessage(t)
+) -> Next(t, Subject(SupervisorQuery)) {
 
 }

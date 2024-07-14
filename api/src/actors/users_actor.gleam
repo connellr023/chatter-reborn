@@ -1,5 +1,7 @@
-import gleam/erlang/process.{type Subject}
-import gleam/otp/actor.{type Next}
+import gleam/io
+import gleam/function
+import gleam/erlang/process.{type Subject, Normal}
+import gleam/otp/actor.{type Next, Spec, Ready, Stop}
 import gleam/option.{type Option}
 import gleam/dict.{type Dict}
 import models/user.{type User}
@@ -9,6 +11,10 @@ import mist.{type WebsocketConnection}
 /// It encapsulates a map of user id to user
 pub opaque type UsersActorState {
   UsersActorState(users: Dict(WebsocketConnection, User))
+}
+
+fn new_state() -> UsersActorState {
+  UsersActorState(dict.new())
 }
 
 fn insert_user(state: UsersActorState, user: User) -> UsersActorState {
@@ -30,12 +36,30 @@ fn get_user(state: UsersActorState, connection: WebsocketConnection) -> Option(U
 pub opaque type UsersActorMessage {
   InsertUser(user: User)
   DeleteUser(connection: WebsocketConnection)
-  GetUser(connection: WebsocketConnection, reply: Subject(Option(User)))
+  GetUser(
+    connection: WebsocketConnection,
+    client: Subject(Option(User))
+  )
   Shutdown
 }
 
-pub fn start() -> Result(Subject(UsersActorMessage), _) {
-  actor.start(UsersActorState(dict.new()), handle_message)
+pub fn start(_input: Nil, parent_subject: Subject(Subject(UsersActorMessage))) -> Result(Subject(UsersActorMessage), _) {
+  actor.start_spec(Spec(
+    init: fn() {
+      // Create a users actor subject and send it to the parent process
+      let actor_subject = process.new_subject()
+      process.send(parent_subject, actor_subject)
+
+      // Initialize a selector for receiving messages
+      let selector = process.new_selector()
+      |> process.selecting(actor_subject, function.identity)
+
+      io.println("Users Actor started")
+      Ready(new_state(), selector)
+    },
+    init_timeout: 1000,
+    loop: handle_message
+  ))
 }
 
 fn handle_message(message: UsersActorMessage, state: UsersActorState) -> Next(UsersActorMessage, UsersActorState) {
@@ -46,6 +70,6 @@ fn handle_message(message: UsersActorMessage, state: UsersActorState) -> Next(Us
       process.send(client, get_user(state, connection))
       state |> actor.continue
     }
-    Shutdown -> process.Normal |> actor.Stop
+    Shutdown -> Stop(Normal)
   }
 }

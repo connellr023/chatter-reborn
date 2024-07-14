@@ -1,25 +1,26 @@
 import gleam/bytes_builder
 import gleam/erlang/process
-import gleam/io
-import gleam/iterator
-import gleam/otp/actor
-import gleam/result
-import gleam/string
-import gleam/option.{None, Some}
+import gleam/option.{Some}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import mist.{type Connection, type ResponseData}
+import actors/supervisor_actor
+import actors/users_actor.{type UsersActorMessage, type UsersActorState}
 
-fn init_server(req: Request(Connection)) -> Response(ResponseData) {
-
-}
+const port: Int = 3000
 
 pub fn main() {
-  let not_found = response.new(404) |> response.set_body(mist.Bytes(bytes_builder.new()))
+  let _supervisor_actor = supervisor_actor.start()
 
-  let assert Ok(_) = init_server
+  let assert Ok(_) = fn(req: Request(Connection)) -> Response(ResponseData) {
+    let _selector = process.new_selector()
+
+    case request.path_segments(req) {
+      _ -> response.new(404) |> response.set_body(mist.Bytes(bytes_builder.new()))
+    }
+  }
   |> mist.new
-  |> mist.port(3000)
+  |> mist.port(port)
   |> mist.start_http
 
   process.sleep_forever()
