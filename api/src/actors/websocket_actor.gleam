@@ -11,17 +11,23 @@ import mist.{
   type WebsocketConnection
 }
 
-pub type WebsocketActorState {
+pub opaque type WebsocketActorState {
   WebsocketActorState(
     users_actor: Subject(UsersActorMessage)
     // ...
   )
 }
 
+pub fn new_state(users_actor: Subject(UsersActorMessage)) -> WebsocketActorState {
+  WebsocketActorState(
+    users_actor: users_actor
+  )
+}
+
 pub fn upgrade_to_websocket(req: Request(Connection), initial_state: WebsocketActorState, selector: Option(Selector(t)), on_disconnect: fn(WebsocketActorState) -> Nil) -> Response(ResponseData) {
   mist.websocket(
     request: req,
-    on_init: fn(_) { #(initial_state, selector) },
+    on_init: fn(_conn) { #(initial_state, selector) },
     on_close: on_disconnect,
     handler: handle_websocket_message
   )
