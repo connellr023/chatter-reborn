@@ -58,7 +58,6 @@ fn handle_init_state() -> SupervisorState {
 }
 
 fn handle_query(query: SupervisorQuery, state: SupervisorState) -> Next(SupervisorQuery, SupervisorState) {
-  io.println("handling")
   case query {
     FinishInit -> case state {
       SupervisorState(..) -> panic // The supervisor actor has already been initialized
