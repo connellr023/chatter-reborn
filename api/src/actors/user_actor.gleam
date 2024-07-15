@@ -1,30 +1,28 @@
 import gleam/io
-import gleam/function
+import gleam/option.{type Option, Some, None}
 import gleam/erlang/process.{type Subject, Normal}
 import gleam/otp/actor.{type Next, Stop}
 import models/user.{type User}
+import actors/actor_messages.{
+  type RoomActorMessage,
+  type UserActorMessage,
+  DisconnectUser,
+  ShutdownUser
+}
 
 pub opaque type UserActorState {
   UserActorState(
-    user: User
-    // room: ...
+    user: User,
+    room_subject: Option(Subject(RoomActorMessage))
   )
-}
-
-/// The messages that the users actor can receive
-/// It can insert a user, delete a user, or shutdown
-pub type UserActorMessage {
-  GetState(client: Subject(User))
-  JoinRoom
-  Shutdown
 }
 
 pub fn start(user: User) -> Subject(UserActorMessage) {
   io.println("Started user actor with name " <> user.get_name(user))
 
   let state = UserActorState(
-    user: user
-    // room: ...
+    user: user,
+    room_subject: None
   )
 
   let assert Ok(actor) = actor.start(state, handle_message)
@@ -33,8 +31,17 @@ pub fn start(user: User) -> Subject(UserActorMessage) {
 
 fn handle_message(message: UserActorMessage, state: UserActorState) -> Next(UserActorMessage, UserActorState) {
   case message {
-    Shutdown -> {
+    ShutdownUser -> {
       io.println("Shutdown user actor with name " <> user.get_name(state.user))
+
+      // Tell room actor to disconnect this user if connected
+      case state.room_subject {
+        Some(room_subject) -> {
+          process.send(room_subject, DisconnectUser(state.user))
+        }
+        None -> Nil
+      }
+
       Stop(Normal)
     }
     _ -> state |> actor.continue

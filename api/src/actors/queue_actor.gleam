@@ -1,18 +1,13 @@
 import gleam/io
+import gleam/list
 import gleam/otp/actor.{type Next, Stop}
 import gleam/erlang/process.{type Subject, Normal}
-import actors/user_actor.{type UserActorMessage}
-
-const participants_per_room: Int = 2
-
-pub type QueueActorMessage {
-  /// Enqueues a new user subject
-  EnqueueUser(user: Subject(UserActorMessage))
-
-  /// Removes a user subject from the queue (can be done out of order)
-  DequeueUser(user: Subject(UserActorMessage))
-
-  Shutdown
+import actors/actor_messages.{
+  type UserActorMessage,
+  type QueueActorMessage,
+  EnqueueUser,
+  DequeueUser,
+  ShutdownQueue
 }
 
 pub fn start() -> Subject(QueueActorMessage) {
@@ -27,7 +22,11 @@ fn handle_message(
   queue: List(Subject(UserActorMessage))
 ) -> Next(QueueActorMessage, List(Subject(UserActorMessage))) {
   case message {
-    Shutdown -> Stop(Normal)
-    _ -> queue |> actor.continue
+    EnqueueUser(_user_subject) -> queue |> actor.continue
+    DequeueUser(user_subject) -> {
+      let new_queue = list.filter(queue, fn(s) {s != user_subject})
+      new_queue |> actor.continue
+    }
+    ShutdownQueue -> Stop(Normal)
   }
 }

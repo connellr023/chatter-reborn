@@ -14,9 +14,15 @@ import mist.{
   Closed,
   Shutdown
 }
-import actors/queue_actor.{type QueueActorMessage}
-import actors/user_actor.{type UserActorMessage}
 import models/user.{type User}
+import actors/user_actor
+import actors/actor_messages.{
+  type QueueActorMessage,
+  type UserActorMessage,
+  EnqueueUser,
+  DequeueUser,
+  ShutdownUser
+}
 
 pub opaque type WebsocketActorState {
   WebsocketActorState(
@@ -102,7 +108,7 @@ fn start_and_enqueue_user(user: User, state: WebsocketActorState) -> WebsocketAc
   let user_subject = user_actor.start(user)
 
   // Send message to queue actor to enqueue the new user subject
-  process.send(state.queue_subject, queue_actor.EnqueueUser(user_subject))
+  process.send(state.queue_subject, EnqueueUser(user_subject))
 
   WebsocketActorState(
     ..state,
@@ -113,8 +119,8 @@ fn start_and_enqueue_user(user: User, state: WebsocketActorState) -> WebsocketAc
 fn shutdown_and_dequeue_user(state: WebsocketActorState) -> WebsocketActorState {
   case state.user {
     Some(user) -> {
-      process.send(state.queue_subject, queue_actor.DequeueUser(user))
-      process.send(user, user_actor.Shutdown)
+      process.send(state.queue_subject, DequeueUser(user))
+      process.send(user, ShutdownUser)
 
       WebsocketActorState(
         ..state,
