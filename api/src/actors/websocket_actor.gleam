@@ -1,3 +1,4 @@
+import models/message
 import gleam/otp/supervisor
 import gleam/io
 import gleam/http/request.{type Request}
@@ -43,8 +44,13 @@ pub fn start(
 
       #(state, selector)
     },
-    on_close: fn(_state) {
+    on_close: fn(state) {
       io.println("A connection was closed")
+
+      case state.user {
+        Some(user) -> process.send(user.0, user_actor.Shutdown)
+        None -> Nil
+      }
     },
     handler: handle_websocket_message
   )
@@ -56,18 +62,52 @@ fn handle_websocket_message(
   message: WebsocketMessage(t)
 ) -> Next(t, WebsocketActorState) {
   case message {
-    Text(text) -> {
-      // TODO: Decode JSON
-      io.println(text)
+    Text(json) -> {
+      let message = json |> message.deserialize
 
-      state |> actor.continue
+      case message {
+        Ok(message) -> case message.get_event(message) {
+          "join" -> case state.user {
+            Some(_) -> {
+              let name = message.get_body(message)
+              let user = user.new(connection, name)
+              let new_state = setup_user(user, state)
+
+              let created_response = message.new("created", "User successfully created") |> message.serialize
+              let assert Ok(_) = mist.send_text_frame(connection, created_response)
+
+              new_state |> actor.continue
+            }
+            None -> state |> actor.continue
+          }
+          "chat" -> case state.user { // For now
+            Some(_user) -> state |> actor.continue
+            None -> state |> actor.continue
+          }
+          _ -> state |> actor.continue
+        }
+        Error(_) -> {
+          let error_response = message.new("error", "Failed to decode message") |> message.serialize
+          let assert Ok(_) = mist.send_text_frame(connection, error_response)
+
+          state |> actor.continue
+        }
+      }
     }
-    Closed | Shutdown -> Stop(Normal)
+    Closed | Shutdown -> {
+      case state.user {
+        Some(user) -> {
+          process.send(user.0, user_actor.Shutdown)
+          Stop(Normal)
+        }
+        None -> Stop(Normal)
+      }
+    }
     _ -> state |> actor.continue
   }
 }
 
-fn set_user_subject(user: User, state: WebsocketActorState) -> WebsocketActorState {
+fn setup_user(user: User, state: WebsocketActorState) -> WebsocketActorState {
   let parent_subject = process.new_subject()
   let user_worker = supervisor.worker(user_actor.start(_, user, parent_subject))
 

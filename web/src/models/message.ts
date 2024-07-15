@@ -1,12 +1,12 @@
-enum MessageType {
+enum MessageEvent {
   Join = "join",
   Chat = "chat",
   Error = "error"
 }
 
 type Message = {
-  type: MessageType,
-  body?: string
+  event: MessageEvent,
+  body: string
 }
 
 export default Message;

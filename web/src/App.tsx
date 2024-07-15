@@ -25,7 +25,7 @@ const App = () => {
       return
     }
 
-    socket.current?.send(JSON.stringify({ type: "join", name }))
+    socket.current?.send(JSON.stringify({ event: "join", body: name }))
   }
 
   return (

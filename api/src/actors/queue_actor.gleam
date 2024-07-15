@@ -3,6 +3,8 @@ import gleam/otp/actor.{type Next, Stop}
 import gleam/erlang/process.{type Subject, Normal}
 import actors/user_actor.{type UserActorMessage}
 
+const participants_per_room: Int = 2
+
 pub opaque type QueueActorMessage {
   /// Enqueues a new user subject
   EnqueueUser(user: Subject(UserActorMessage))

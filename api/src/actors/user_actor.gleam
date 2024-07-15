@@ -6,7 +6,7 @@ import models/user.{type User}
 
 /// The messages that the users actor can receive
 /// It can insert a user, delete a user, or shutdown
-pub opaque type UserActorMessage {
+pub type UserActorMessage {
   GetState(client: Subject(User))
   Shutdown
 }
@@ -26,7 +26,7 @@ pub fn start(
       let selector = process.new_selector()
       |> process.selecting(actor_subject, function.identity)
 
-      io.println("User actor with name " <> user.get_name(initial_state) <> " started")
+      io.println("Started user actor with name " <> user.get_name(initial_state))
       Ready(initial_state, selector)
     },
     init_timeout: 1000,
@@ -36,7 +36,10 @@ pub fn start(
 
 fn handle_message(message: UserActorMessage, state: User) -> Next(UserActorMessage, User) {
   case message {
-    Shutdown -> Stop(Normal)
+    Shutdown -> {
+      io.println("Shutdown user actor with name " <> user.get_name(state))
+      Stop(Normal)
+    }
     _ -> state |> actor.continue
   }
 }
