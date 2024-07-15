@@ -5,7 +5,7 @@ import actors/user_actor.{type UserActorMessage}
 
 const participants_per_room: Int = 2
 
-pub opaque type QueueActorMessage {
+pub type QueueActorMessage {
   /// Enqueues a new user subject
   EnqueueUser(user: Subject(UserActorMessage))
 

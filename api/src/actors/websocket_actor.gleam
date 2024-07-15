@@ -1,5 +1,4 @@
 import models/message
-import gleam/otp/supervisor
 import gleam/io
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
@@ -18,11 +17,10 @@ import mist.{
 import actors/queue_actor.{type QueueActorMessage}
 import actors/user_actor.{type UserActorMessage}
 import models/user.{type User}
-import utilities/actor_parent_bond.{type ActorParentBond}
 
 pub opaque type WebsocketActorState {
   WebsocketActorState(
-    user: Option(ActorParentBond(UserActorMessage)),
+    user: Option(Subject(UserActorMessage)),
     queue_subject: Subject(QueueActorMessage)
   )
 }
@@ -46,11 +44,9 @@ pub fn start(
     },
     on_close: fn(state) {
       io.println("A connection was closed")
+      shutdown_and_dequeue_user(state)
 
-      case state.user {
-        Some(user) -> process.send(user.0, user_actor.Shutdown)
-        None -> Nil
-      }
+      Nil
     },
     handler: handle_websocket_message
   )
@@ -71,7 +67,7 @@ fn handle_websocket_message(
             Some(_) -> {
               let name = message.get_body(message)
               let user = user.new(connection, name)
-              let new_state = setup_user(user, state)
+              let new_state = start_and_enqueue_user(user, state)
 
               let created_response = message.new("created", "User successfully created") |> message.serialize
               let assert Ok(_) = mist.send_text_frame(connection, created_response)
@@ -95,30 +91,36 @@ fn handle_websocket_message(
       }
     }
     Closed | Shutdown -> {
-      case state.user {
-        Some(user) -> {
-          process.send(user.0, user_actor.Shutdown)
-          Stop(Normal)
-        }
-        None -> Stop(Normal)
-      }
+      shutdown_and_dequeue_user(state)
+      Stop(Normal)
     }
     _ -> state |> actor.continue
   }
 }
 
-fn setup_user(user: User, state: WebsocketActorState) -> WebsocketActorState {
-  let parent_subject = process.new_subject()
-  let user_worker = supervisor.worker(user_actor.start(_, user, parent_subject))
+fn start_and_enqueue_user(user: User, state: WebsocketActorState) -> WebsocketActorState {
+  let user_subject = user_actor.start(user)
 
-  // Start supervisor
-  let assert Ok(_) = supervisor.start(supervisor.add(_,  user_worker))
-
-  // Receive subject
-  let assert Ok(user_subject) = process.receive(parent_subject, 1000)
+  // Send message to queue actor to enqueue the new user subject
+  process.send(state.queue_subject, queue_actor.EnqueueUser(user_subject))
 
   WebsocketActorState(
     ..state,
-    user: Some(#(user_subject, parent_subject))
+    user: Some(user_subject)
   )
+}
+
+fn shutdown_and_dequeue_user(state: WebsocketActorState) -> WebsocketActorState {
+  case state.user {
+    Some(user) -> {
+      process.send(state.queue_subject, queue_actor.DequeueUser(user))
+      process.send(user, user_actor.Shutdown)
+
+      WebsocketActorState(
+        ..state,
+        user: None
+      )
+    }
+    None -> state
+  }
 }
