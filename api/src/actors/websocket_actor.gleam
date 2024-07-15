@@ -1,19 +1,22 @@
 import gleam/io
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
-import gleam/erlang/process.{type Subject, type Selector}
+import gleam/erlang/process.{type Subject, type Selector, Normal}
 import gleam/option.{type Option}
-import gleam/otp/actor.{type Next}
+import gleam/otp/actor.{type Next, Stop}
 import mist.{
   type Connection,
   type ResponseData,
   type WebsocketMessage,
-  type WebsocketConnection
+  type WebsocketConnection,
+  Text,
+  Closed,
+  Shutdown
 }
 import actors/supervisor_actor.{type SupervisorQuery}
 
 /// There is a websocket actor for each client that is connected
-/// The websocket actor receives access to a subject that allows it to interface with the supervisor subject
+/// The websocket actor receives access to a subject that allows it to interface with the supervisor actor
 
 pub opaque type WebsocketActorState {
   WebsocketActorState(
@@ -51,6 +54,14 @@ fn handle_websocket_message(
   connection: WebsocketConnection,
   message: WebsocketMessage(t)
 ) -> Next(t, WebsocketActorState) {
-  io.println("message")
-  actor.continue(state)
+  case message {
+    Text(text) -> {
+      // TODO: Decode JSON
+      io.println(text)
+
+      state |> actor.continue
+    }
+    Closed | Shutdown -> Stop(Normal)
+    _ -> state |> actor.continue
+  }
 }
