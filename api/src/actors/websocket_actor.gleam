@@ -1,8 +1,9 @@
+import gleam/otp/supervisor
 import gleam/io
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/erlang/process.{type Subject, type Selector, Normal}
-import gleam/option.{type Option}
+import gleam/option.{type Option, Some, None}
 import gleam/otp/actor.{type Next, Stop}
 import mist.{
   type Connection,
@@ -13,31 +14,31 @@ import mist.{
   Closed,
   Shutdown
 }
-import actors/supervisor_actor.{type SupervisorQuery}
-
-/// There is a websocket actor for each client that is connected
-/// The websocket actor receives access to a subject that allows it to interface with the supervisor actor
+import actors/queue_actor.{type QueueActorMessage}
+import actors/user_actor.{type UserActorMessage}
+import models/user.{type User}
+import utilities/actor_parent_bond.{type ActorParentBond}
 
 pub opaque type WebsocketActorState {
   WebsocketActorState(
-    connection: WebsocketConnection,
-    supervisor_actor: Subject(SupervisorQuery)
+    user: Option(ActorParentBond(UserActorMessage)),
+    queue_subject: Subject(QueueActorMessage)
   )
 }
 
-pub fn upgrade_to_websocket(
+pub fn start(
   req: Request(Connection),
-  supervisor_actor: Subject(SupervisorQuery),
-  selector: Option(Selector(t))
+  selector: Option(Selector(t)),
+  queue_subject: Subject(QueueActorMessage)
 ) -> Response(ResponseData) {
   mist.websocket(
     request: req,
-    on_init: fn(connection) {
+    on_init: fn(_) {
       io.println("New connection initialized")
 
       let state = WebsocketActorState(
-        connection: connection,
-        supervisor_actor: supervisor_actor
+        user: None,
+        queue_subject: queue_subject
       )
 
       #(state, selector)
@@ -64,4 +65,20 @@ fn handle_websocket_message(
     Closed | Shutdown -> Stop(Normal)
     _ -> state |> actor.continue
   }
+}
+
+fn set_user_subject(user: User, state: WebsocketActorState) -> WebsocketActorState {
+  let parent_subject = process.new_subject()
+  let user_worker = supervisor.worker(user_actor.start(_, user, parent_subject))
+
+  // Start supervisor
+  let assert Ok(_) = supervisor.start(supervisor.add(_,  user_worker))
+
+  // Receive subject
+  let assert Ok(user_subject) = process.receive(parent_subject, 1000)
+
+  WebsocketActorState(
+    ..state,
+    user: Some(#(user_subject, parent_subject))
+  )
 }
