@@ -21,12 +21,14 @@ import actors/actor_messages.{
   type UserActorMessage,
   EnqueueUser,
   DequeueUser,
+  GetUser,
+  SendSocketMessage,
   ShutdownUser
 }
 
 pub opaque type WebsocketActorState {
   WebsocketActorState(
-    user: Option(Subject(UserActorMessage)),
+    user_subject: Option(Subject(UserActorMessage)),
     queue_subject: Subject(QueueActorMessage)
   )
 }
@@ -42,7 +44,7 @@ pub fn start(
       io.println("New connection initialized")
 
       let state = WebsocketActorState(
-        user: None,
+        user_subject: None,
         queue_subject: queue_subject
       )
 
@@ -50,7 +52,7 @@ pub fn start(
     },
     on_close: fn(state) {
       io.println("A connection was closed")
-      shutdown_and_dequeue_user(state)
+      state |> shutdown_and_dequeue_user
 
       Nil
     },
@@ -69,35 +71,45 @@ fn handle_websocket_message(
 
       case message {
         Ok(message) -> case message.get_event(message) {
-          "join" -> case state.user {
+          "join" -> case state.user_subject {
             Some(_) -> {
               let name = message.get_body(message)
               let user = user.new(connection, name)
               let new_state = start_and_enqueue_user(user, state)
 
-              let created_response = message.new("created", "User successfully created") |> message.serialize
-              let assert Ok(_) = mist.send_text_frame(connection, created_response)
+              case new_state.user_subject {
+                Some(user_subject) -> {
+                  let created_response = message.new("created", "User successfully created")
+                  process.send(user_subject, SendSocketMessage(created_response))
+                }
+                None -> Nil
+              }
 
               new_state |> actor.continue
             }
             None -> state |> actor.continue
           }
-          "chat" -> case state.user { // For now
+          "chat" -> case state.user_subject { // For now
             Some(_user) -> state |> actor.continue
             None -> state |> actor.continue
           }
           _ -> state |> actor.continue
         }
         Error(_) -> {
-          let error_response = message.new("error", "Failed to decode message") |> message.serialize
-          let assert Ok(_) = mist.send_text_frame(connection, error_response)
+          case state.user_subject {
+            Some(user_subject) -> {
+              let error_response = message.new("error", "Failed to decode message")
+              process.send(user_subject, SendSocketMessage(error_response))
+            }
+            None -> Nil
+          }
 
           state |> actor.continue
         }
       }
     }
     Closed | Shutdown -> {
-      shutdown_and_dequeue_user(state)
+      state |> shutdown_and_dequeue_user
       Stop(Normal)
     }
     _ -> state |> actor.continue
@@ -108,23 +120,25 @@ fn start_and_enqueue_user(user: User, state: WebsocketActorState) -> WebsocketAc
   let user_subject = user_actor.start(user)
 
   // Send message to queue actor to enqueue the new user subject
-  process.send(state.queue_subject, EnqueueUser(user_subject))
+  process.send(state.queue_subject, EnqueueUser(user: user, user_subject: user_subject))
 
   WebsocketActorState(
     ..state,
-    user: Some(user_subject)
+    user_subject: Some(user_subject)
   )
 }
 
 fn shutdown_and_dequeue_user(state: WebsocketActorState) -> WebsocketActorState {
-  case state.user {
-    Some(user) -> {
+  case state.user_subject {
+    Some(user_subject) -> {
+      let user = process.call(user_subject, GetUser, 1000)
+
       process.send(state.queue_subject, DequeueUser(user))
-      process.send(user, ShutdownUser)
+      process.send(user_subject, ShutdownUser)
 
       WebsocketActorState(
         ..state,
-        user: None
+        user_subject: None
       )
     }
     None -> state

@@ -1,3 +1,5 @@
+import mist
+import models/message
 import gleam/io
 import gleam/option.{type Option, Some, None}
 import gleam/erlang/process.{type Subject, Normal}
@@ -7,7 +9,12 @@ import actors/actor_messages.{
   type RoomActorMessage,
   type UserActorMessage,
   DisconnectUser,
-  ShutdownUser
+  JoinRoom,
+  GetUser,
+  SendSocketMessage,
+  SendToRoom,
+  ShutdownUser,
+  SendToAll
 }
 
 pub opaque type UserActorState {
@@ -29,8 +36,37 @@ pub fn start(user: User) -> Subject(UserActorMessage) {
   actor
 }
 
-fn handle_message(message: UserActorMessage, state: UserActorState) -> Next(UserActorMessage, UserActorState) {
+fn handle_message(
+  message: UserActorMessage,
+  state: UserActorState
+) -> Next(UserActorMessage, UserActorState) {
   case message {
+    GetUser(client) -> {
+      process.send(client, state.user)
+      state |> actor.continue
+    }
+    JoinRoom(room_subject) -> {
+      let new_state = UserActorState(
+        ..state,
+        room_subject: Some(room_subject)
+      )
+
+      new_state |> actor.continue
+    }
+    SendSocketMessage(message) -> {
+      let json_string = message |> message.serialize
+      let assert Ok(_) = mist.send_text_frame(user.get_connection(state.user), json_string)
+
+      state |> actor.continue
+    }
+    SendToRoom(message) -> {
+      case state.room_subject {
+        Some(room_subject) -> process.send(room_subject, SendToAll(message))
+        None -> Nil
+      }
+
+      state |> actor.continue
+    }
     ShutdownUser -> {
       io.println("Shutdown user actor with name " <> user.get_name(state.user))
 
@@ -44,6 +80,5 @@ fn handle_message(message: UserActorMessage, state: UserActorState) -> Next(User
 
       Stop(Normal)
     }
-    _ -> state |> actor.continue
   }
 }
