@@ -1,15 +1,28 @@
-import gleam/bytes_builder
 import gleam/erlang/process
-import gleam/io
-import gleam/iterator
-import gleam/otp/actor
-import gleam/result
-import gleam/string
-import gleam/option.{None, Some}
+import gleam/option.{Some}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
-import mist.{type Connection, type ResponseData}
+import gleam/bytes_builder
+import mist.{type Connection, type ResponseData, Bytes}
+import actors/websocket_actor
+import actors/queue_actor
+
+const port: Int = 3000
 
 pub fn main() {
-  io.println("Hello from chatter_api!")
+  let queue_actor = queue_actor.start()
+
+  let assert Ok(_) = fn(req: Request(Connection)) -> Response(ResponseData) {
+    let selector = process.new_selector()
+
+    case request.path_segments(req) {
+      ["api", "connect"] -> websocket_actor.start(req, Some(selector), queue_actor)
+      _ -> response.new(404) |> response.set_body(Bytes(bytes_builder.new()))
+    }
+  }
+  |> mist.new
+  |> mist.port(port)
+  |> mist.start_http
+
+  process.sleep_forever()
 }

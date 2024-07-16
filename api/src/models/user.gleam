@@ -1,15 +1,30 @@
+import gleam/option.{type Option, None}
+import mist.{type WebsocketConnection}
+
 pub opaque type User {
-  User(id: Int, name: String)
+  User(
+    connection: WebsocketConnection,
+    name: String,
+    room_id: Option(Int)
+  )
 }
 
-fn new(id: Int, name: String) -> User {
-  User(id, name)
+pub fn new(id: WebsocketConnection, name: String) -> User {
+  User(id, name, None)
 }
 
-fn get_id(user: User) -> Int {
-  user.id
+pub fn get_connection(user: User) -> WebsocketConnection {
+  user.connection
 }
 
-fn get_name(user: User) -> String {
+pub fn get_name(user: User) -> String {
   user.name
+}
+
+pub fn get_room_id(user: User) -> Option(Int) {
+  user.room_id
+}
+
+pub fn set_room_id(user: User, room_id: Option(Int)) -> User {
+  User(..user, room_id: room_id)
 }
