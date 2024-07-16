@@ -2,25 +2,26 @@ import gleam/io
 import gleam/list
 import gleam/erlang/process.{type Subject, Normal}
 import gleam/otp/actor.{type Next, Stop}
+import mist.{type WebsocketMessage, Custom}
 import models/chat.{type Chat}
-import models/user.{type User}
 import actors/actor_messages.{
-  type UserActorMessage,
+  type CustomWebsocketMessage,
   type RoomActorMessage,
   DisconnectUser,
-  SendSocketMessage,
+  SendToClient,
   SendToAll,
-  JoinRoom
+  JoinRoom,
+  Disconnect
 }
 
 pub opaque type RoomActorState {
   RoomActorState(
-    participants: List(#(User, Subject(UserActorMessage))),
+    participants: List(Subject(WebsocketMessage(CustomWebsocketMessage))),
     messages: List(Chat)
   )
 }
 
-pub fn start(participants: List(#(User, Subject(UserActorMessage)))) -> Subject(RoomActorMessage) {
+pub fn start(participants: List(Subject(WebsocketMessage(CustomWebsocketMessage)))) -> Subject(RoomActorMessage) {
   io.println("Started new room actor")
 
   let state = RoomActorState(
@@ -32,7 +33,7 @@ pub fn start(participants: List(#(User, Subject(UserActorMessage)))) -> Subject(
 
   // Tell participants they have been put into a room
   list.each(participants, fn(participant) {
-    process.send(participant.1, JoinRoom(room_subject: actor))
+    process.send(participant, Custom(JoinRoom(room_subject: actor)))
   })
 
   actor
@@ -45,22 +46,28 @@ fn handle_message(
   case message {
     SendToAll(message) -> {
       list.each(state.participants, fn(participant) {
-        process.send(participant.1, SendSocketMessage(message))
+        process.send(participant, Custom(SendToClient(message)))
       })
 
       actor.continue(state)
     }
-    DisconnectUser(user) -> {
-      io.println("Disconnected user with name " <> user.get_name(user) <> " from a room")
+    DisconnectUser(user_subject) -> {
+      io.println("Disconnected a user from a room")
 
       let new_state = RoomActorState(
         ..state,
-        participants: list.filter(state.participants, fn(tuple) {tuple.0 != user})
+        participants: list.filter(state.participants, fn(subject) {subject != user_subject})
       )
 
       // Close the room if one or no participants left
       case new_state.participants {
-        [] | [_] -> Stop(Normal)
+        [] -> {
+          Stop(Normal)
+        }
+        [subject] -> {
+          process.send(subject, Custom(Disconnect))
+          Stop(Normal)
+        }
         _ -> new_state |> actor.continue
       }
     }
