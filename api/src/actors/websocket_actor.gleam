@@ -1,5 +1,4 @@
 import gleam/function
-import models/message
 import gleam/io
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
@@ -16,6 +15,8 @@ import mist.{
   Closed,
   Shutdown
 }
+import models/socket_message
+import models/chat
 import actors/actor_messages.{
   type CustomWebsocketMessage,
   type RoomActorMessage,
@@ -24,7 +25,8 @@ import actors/actor_messages.{
   DequeueUser,
   DisconnectUser,
   JoinRoom,
-  Disconnect
+  Disconnect,
+  SendToAll
 }
 
 pub opaque type WebsocketActorState {
@@ -91,34 +93,49 @@ fn handle_message(
       _ -> state |> actor.continue
     }
     Text(json) -> {
-      let message = json |> message.deserialize
+      let message = json |> socket_message.deserialize
 
       case message {
-        Ok(message) -> case message.get_event(message) {
+        Ok(message) -> case socket_message.get_event(message) {
           "join" -> case state.name {
             Some(_) -> state |> actor.continue
             None -> {
-              let name = message.get_body(message)
+              let name = socket_message.get_body(message)
               let new_state = WebsocketActorState(
                 ..state,
                 name: Some(name)
               )
 
-              let created_response = message.new("created", "User successfully created") |> message.serialize
+              let created_response = socket_message.new("created", "User successfully created") |> socket_message.serialize
               let assert Ok(_) = mist.send_text_frame(connection, created_response)
 
               on_start(new_state)
               new_state |> actor.continue
             }
           }
-          "chat" -> case state.room_subject { // For now
-            Some(_room_subject) -> state |> actor.continue
-            None -> state |> actor.continue
+          "chat" -> {
+            // use room_subject <- option.then(state.room_subject)
+            // use name <- option.then(state.name)
+            // room_subject
+
+            state |> actor.continue
           }
+
+          // case state.room_subject {
+          //   Some(room_subject) -> {
+          //     let content = socket_message.get_body(message)
+          //     let chat = chat.new(state.name, content)
+
+          //     process.send(room_subject, SendToAll(chat))
+
+          //     state |> actor.continue
+          //   }
+          //   None -> state |> actor.continue
+          // }
           _ -> state |> actor.continue
         }
         Error(_) -> {
-          let error_response = message.new("error", "Failed to decode message") |> message.serialize
+          let error_response = socket_message.new("error", "Failed to decode message") |> socket_message.serialize
           let assert Ok(_) = mist.send_text_frame(connection, error_response)
 
           state |> actor.continue

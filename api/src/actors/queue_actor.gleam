@@ -3,7 +3,6 @@ import gleam/io
 import gleam/list
 import gleam/otp/actor.{type Next, Stop}
 import gleam/erlang/process.{type Subject, Normal}
-import mist.{type WebsocketMessage}
 import actors/actor_messages.{
   type CustomWebsocketMessage,
   type QueueActorMessage,

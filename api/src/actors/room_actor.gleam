@@ -1,3 +1,4 @@
+import models/socket_message
 import gleam/io
 import gleam/list
 import gleam/erlang/process.{type Subject, Normal}
@@ -44,7 +45,10 @@ fn handle_message(
   state: RoomActorState
 ) -> Next(RoomActorMessage, RoomActorState) {
   case message {
-    SendToAll(message) -> {
+    SendToAll(chat) -> {
+      let body = chat |> chat.serialize
+      let message = socket_message.new("chat", body)
+
       list.each(state.participants, fn(participant) {
         process.send(participant, SendToClient(message))
       })
