@@ -1,13 +1,11 @@
-import models/user.{type User}
-
 pub opaque type Chat {
   Chat(
-    source: User,
+    source: String,
     content: String
   )
 }
 
-pub fn new(source: User, content: String) -> Chat {
+pub fn new(source: String, content: String) -> Chat {
   Chat(
     source: source,
     content: content

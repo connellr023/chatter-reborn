@@ -1,3 +1,4 @@
+import gleam/function
 import models/message
 import gleam/io
 import gleam/http/request.{type Request}
@@ -29,7 +30,7 @@ import actors/actor_messages.{
 pub opaque type WebsocketActorState {
   WebsocketActorState(
     name: Option(String),
-    subject: Option(Subject(WebsocketMessage(CustomWebsocketMessage))),
+    ws_subject: Subject(CustomWebsocketMessage),
     room_subject: Option(Subject(RoomActorMessage)),
     queue_subject: Subject(QueueActorMessage)
   )
@@ -37,7 +38,7 @@ pub opaque type WebsocketActorState {
 
 pub fn start(
   req: Request(Connection),
-  selector: Option(Selector(CustomWebsocketMessage)),
+  selector: Selector(CustomWebsocketMessage),
   queue_subject: Subject(QueueActorMessage)
 ) -> Response(ResponseData) {
   mist.websocket(
@@ -45,14 +46,18 @@ pub fn start(
     on_init: fn(_) {
       io.println("New connection initialized")
 
+      let ws_subject = process.new_subject()
+      let new_selector = selector
+      |> process.selecting(ws_subject, function.identity)
+
       let state = WebsocketActorState(
         name: None,
-        subject: None,
+        ws_subject: ws_subject,
         room_subject: None,
         queue_subject: queue_subject
       )
 
-      #(state, selector)
+      #(state, Some(new_selector))
     },
     on_close: fn(state) {
       io.println("A connection was closed")
@@ -96,7 +101,6 @@ fn handle_message(
               let name = message.get_body(message)
               let new_state = WebsocketActorState(
                 ..state,
-                subject: Some(process.new_subject()),
                 name: Some(name)
               )
 
@@ -130,22 +134,14 @@ fn handle_message(
 }
 
 fn on_start(state: WebsocketActorState) {
-  case state.subject {
-    Some(subject) -> process.send(state.queue_subject, EnqueueUser(subject))
-    None -> Nil
-  }
+  process.send(state.queue_subject, EnqueueUser(state.ws_subject))
 }
 
 fn on_shutdown(state: WebsocketActorState) {
-  case state.subject {
-    Some(subject) -> {
-      process.send(state.queue_subject, DequeueUser(subject))
+  process.send(state.queue_subject, DequeueUser(state.ws_subject))
 
-      case state.room_subject {
-        Some(room_subject) -> process.send(room_subject, DisconnectUser(subject))
-        None -> Nil
-      }
-    }
+  case state.room_subject {
+    Some(room_subject) -> process.send(room_subject, DisconnectUser(state.ws_subject))
     None -> Nil
   }
 }

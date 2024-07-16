@@ -10,12 +10,12 @@ pub type CustomWebsocketMessage {
 }
 
 pub type RoomActorMessage {
-  DisconnectUser(user_subject: Subject(WebsocketMessage(CustomWebsocketMessage)))
+  DisconnectUser(user_subject: Subject(CustomWebsocketMessage))
   SendToAll(message: Message)
 }
 
 pub type QueueActorMessage {
-  EnqueueUser(user_subject: Subject(WebsocketMessage(CustomWebsocketMessage)))
-  DequeueUser(user_subject: Subject(WebsocketMessage(CustomWebsocketMessage)))
+  EnqueueUser(user_subject: Subject(CustomWebsocketMessage))
+  DequeueUser(user_subject: Subject(CustomWebsocketMessage))
   ShutdownQueue
 }

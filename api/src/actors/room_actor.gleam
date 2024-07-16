@@ -16,12 +16,12 @@ import actors/actor_messages.{
 
 pub opaque type RoomActorState {
   RoomActorState(
-    participants: List(Subject(WebsocketMessage(CustomWebsocketMessage))),
+    participants: List(Subject(CustomWebsocketMessage)),
     messages: List(Chat)
   )
 }
 
-pub fn start(participants: List(Subject(WebsocketMessage(CustomWebsocketMessage)))) -> Subject(RoomActorMessage) {
+pub fn start(participants: List(Subject(CustomWebsocketMessage))) -> Subject(RoomActorMessage) {
   io.println("Started new room actor")
 
   let state = RoomActorState(
@@ -33,7 +33,7 @@ pub fn start(participants: List(Subject(WebsocketMessage(CustomWebsocketMessage)
 
   // Tell participants they have been put into a room
   list.each(participants, fn(participant) {
-    process.send(participant, Custom(JoinRoom(room_subject: actor)))
+    process.send(participant, JoinRoom(room_subject: actor))
   })
 
   actor
@@ -46,7 +46,7 @@ fn handle_message(
   case message {
     SendToAll(message) -> {
       list.each(state.participants, fn(participant) {
-        process.send(participant, Custom(SendToClient(message)))
+        process.send(participant, SendToClient(message))
       })
 
       actor.continue(state)
@@ -65,7 +65,7 @@ fn handle_message(
           Stop(Normal)
         }
         [subject] -> {
-          process.send(subject, Custom(Disconnect))
+          process.send(subject, Disconnect)
           Stop(Normal)
         }
         _ -> new_state |> actor.continue

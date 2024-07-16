@@ -13,7 +13,7 @@ import actors/actor_messages.{
 }
 
 pub opaque type QueueActorState {
-  QueueActorState(queue: List(Subject(WebsocketMessage(CustomWebsocketMessage))))
+  QueueActorState(queue: List(Subject(CustomWebsocketMessage)))
 }
 
 pub fn start() -> Subject(QueueActorMessage) {
