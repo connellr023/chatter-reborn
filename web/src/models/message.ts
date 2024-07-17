@@ -6,9 +6,9 @@ export enum MessageEvent {
   Error = "error"
 }
 
-type Message<B = string> = {
+type Message = {
   event: MessageEvent,
-  body: B
+  body: string
 }
 
 export default Message;

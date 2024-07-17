@@ -1,26 +1,22 @@
-import { useContext, useEffect, useState } from "react";
-import { ViewContext, Views } from "../contexts/viewContext";
+import { useEffect, useState } from "react";
+import Views, { ViewProps } from "../models/views";
 import Message, { MessageEvent } from "../models/message";
 
-type StartViewProps = {
-  socket: WebSocket
-}
-
-const StartView: React.FC<StartViewProps> = ({ socket }) => {
+const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
   const [name, setName] = useState("")
-  const { setView } = useContext(ViewContext)
 
   useEffect(() => {
-    socket.addEventListener("message", (event) => {
+    const eventHandler = (event: globalThis.MessageEvent) => {
       const data: Message = JSON.parse(event.data)
 
       if (data.event === MessageEvent.Enqueued) {
-        setView(Views.Chat)
+        setView(Views.Queue)
       }
-    })
+    }
 
-    return () => socket.removeEventListener("message", () => {})
-  })
+    socket.addEventListener("message", eventHandler)
+    return () => socket.removeEventListener("message", eventHandler)
+  }, [socket, setView])
 
   const join = () => {
     if (!name) {

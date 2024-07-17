@@ -1,9 +1,9 @@
-import models/socket_message
 import gleam/io
 import gleam/list
 import gleam/erlang/process.{type Subject, Normal}
 import gleam/otp/actor.{type Next, Stop}
-import models/chat.{type Chat}
+import models/chat
+import models/socket_message
 import actors/actor_messages.{
   type CustomWebsocketMessage,
   type RoomActorMessage,
@@ -15,20 +15,13 @@ import actors/actor_messages.{
 }
 
 pub opaque type RoomActorState {
-  RoomActorState(
-    participants: List(Subject(CustomWebsocketMessage)),
-    messages: List(Chat)
-  )
+  RoomActorState(participants: List(Subject(CustomWebsocketMessage)))
 }
 
 pub fn start(participants: List(Subject(CustomWebsocketMessage))) -> Subject(RoomActorMessage) {
   io.println("Started new room actor")
 
-  let state = RoomActorState(
-    participants: participants,
-    messages: []
-  )
-
+  let state = RoomActorState(participants: participants)
   let assert Ok(actor) = actor.start(state, handle_message)
 
   // Tell participants they have been put into a room
@@ -52,11 +45,10 @@ fn handle_message(
         process.send(participant, SendToClient(message))
       })
 
-      actor.continue(state)
+      state |> actor.continue
     }
     DisconnectUser(user_subject) -> {
       let new_state = RoomActorState(
-        ..state,
         participants: list.filter(state.participants, fn(subject) {
           case subject != user_subject {
             True -> True

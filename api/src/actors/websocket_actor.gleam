@@ -83,6 +83,7 @@ fn handle_message(
           room_subject: Some(room_subject)
         )
 
+        send_client_message(connection, socket_message.new("joined", "You have joined a room"))
         new_state |> actor.continue
       }
       SendToClient(message) -> {
