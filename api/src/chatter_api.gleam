@@ -1,6 +1,4 @@
 import gleam/erlang/process
-import gleam/function
-import gleam/option.{Some}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/bytes_builder

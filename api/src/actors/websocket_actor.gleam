@@ -11,11 +11,9 @@ import mist.{
   type WebsocketMessage,
   type WebsocketConnection,
   Text,
-  Custom,
-  Closed,
-  Shutdown
+  Custom
 }
-import models/socket_message
+import models/socket_message.{type SocketMessage}
 import models/chat
 import actors/actor_messages.{
   type CustomWebsocketMessage,
@@ -25,6 +23,7 @@ import actors/actor_messages.{
   DequeueUser,
   DisconnectUser,
   JoinRoom,
+  SendToClient,
   Disconnect,
   SendToAll
 }
@@ -63,7 +62,7 @@ pub fn start(
     },
     on_close: fn(state) {
       io.println("A connection was closed")
-      state |> on_shutdown
+      state |> cleanup
 
       Nil
     },
@@ -86,11 +85,14 @@ fn handle_message(
 
         new_state |> actor.continue
       }
+      SendToClient(message) -> {
+        send_client_message(connection, message)
+        state |> actor.continue
+      }
       Disconnect -> {
         io.println("disconnect")
         state |> actor.continue
       }
-      _ -> state |> actor.continue
     }
     Text(json) -> {
       let message = json |> socket_message.deserialize
@@ -106,59 +108,51 @@ fn handle_message(
                 name: Some(name)
               )
 
-              let created_response = socket_message.new("created", "User successfully created") |> socket_message.serialize
-              let assert Ok(_) = mist.send_text_frame(connection, created_response)
+              process.send(state.queue_subject, EnqueueUser(state.ws_subject))
+              send_client_message(connection, socket_message.new("queued", "User successfully created and enqueued"))
 
-              on_start(new_state)
               new_state |> actor.continue
             }
           }
           "chat" -> {
-            // use room_subject <- option.then(state.room_subject)
-            // use name <- option.then(state.name)
-            // room_subject
+            {
+              use room_subject <- option.then(state.room_subject)
+              use name <- option.then(state.name)
+
+              let content = socket_message.get_body(message)
+              let chat = chat.new(name, content)
+
+              Some(process.send(room_subject, SendToAll(chat)))
+            }
 
             state |> actor.continue
           }
-
-          // case state.room_subject {
-          //   Some(room_subject) -> {
-          //     let content = socket_message.get_body(message)
-          //     let chat = chat.new(state.name, content)
-
-          //     process.send(room_subject, SendToAll(chat))
-
-          //     state |> actor.continue
-          //   }
-          //   None -> state |> actor.continue
-          // }
           _ -> state |> actor.continue
         }
         Error(_) -> {
-          let error_response = socket_message.new("error", "Failed to decode message") |> socket_message.serialize
-          let assert Ok(_) = mist.send_text_frame(connection, error_response)
-
+          send_client_message(connection, socket_message.new("error", "Failed to decode message"))
           state |> actor.continue
         }
       }
     }
-    Closed | Shutdown -> {
-      on_shutdown(state)
+    _ -> {
+      cleanup(state)
       Stop(Normal)
     }
-    _ -> state |> actor.continue
   }
 }
 
-fn on_start(state: WebsocketActorState) {
-  process.send(state.queue_subject, EnqueueUser(state.ws_subject))
+fn send_client_message(connection: WebsocketConnection, message: SocketMessage) {
+  let response = message |> socket_message.serialize
+  let assert Ok(_) = mist.send_text_frame(connection, response)
+
+  Nil
 }
 
-fn on_shutdown(state: WebsocketActorState) {
+fn cleanup(state: WebsocketActorState) {
   process.send(state.queue_subject, DequeueUser(state.ws_subject))
 
-  case state.room_subject {
-    Some(room_subject) -> process.send(room_subject, DisconnectUser(state.ws_subject))
-    None -> Nil
-  }
+  option.then(state.room_subject, fn(room_subject) {
+    Some(process.send(room_subject, DisconnectUser(state.ws_subject)))
+  })
 }

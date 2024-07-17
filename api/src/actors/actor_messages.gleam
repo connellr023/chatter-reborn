@@ -4,7 +4,6 @@ import models/chat.{type Chat}
 
 pub type CustomWebsocketMessage {
   JoinRoom(room_subject: Subject(RoomActorMessage))
-  SendToRoom(chat: Chat)
   SendToClient(message: SocketMessage)
   Disconnect
 }

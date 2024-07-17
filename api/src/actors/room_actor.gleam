@@ -3,7 +3,6 @@ import gleam/io
 import gleam/list
 import gleam/erlang/process.{type Subject, Normal}
 import gleam/otp/actor.{type Next, Stop}
-import mist.{type WebsocketMessage, Custom}
 import models/chat.{type Chat}
 import actors/actor_messages.{
   type CustomWebsocketMessage,
@@ -56,11 +55,17 @@ fn handle_message(
       actor.continue(state)
     }
     DisconnectUser(user_subject) -> {
-      io.println("Disconnected a user from a room")
-
       let new_state = RoomActorState(
         ..state,
-        participants: list.filter(state.participants, fn(subject) {subject != user_subject})
+        participants: list.filter(state.participants, fn(subject) {
+          case subject != user_subject {
+            True -> True
+            False -> {
+              io.println("Disconnected a user from a room")
+              False
+            }
+          }
+        })
       )
 
       // Close the room if one or no participants left

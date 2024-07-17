@@ -48,7 +48,7 @@ fn handle_message(
     DequeueUser(user_subject) -> {
       io.println("Dequeued a user")
 
-      let new_queue = list.filter(state.queue, fn(subject) {subject != user_subject})
+      let new_queue = list.filter(state.queue, fn(subject) { subject != user_subject })
       let new_state = QueueActorState(queue: new_queue)
 
       new_state |> actor.continue
