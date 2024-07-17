@@ -90,8 +90,10 @@ fn handle_message(
         state |> actor.continue
       }
       Disconnect -> {
-        io.println("disconnect")
-        state |> actor.continue
+        option.then(state.name, fn(name) { Some(io.println("Disconnected " <> name)) })
+
+        cleanup(state)
+        Stop(Normal)
       }
     }
     Text(json) -> {
@@ -109,7 +111,7 @@ fn handle_message(
               )
 
               process.send(state.queue_subject, EnqueueUser(state.ws_subject))
-              send_client_message(connection, socket_message.new("queued", "User successfully created and enqueued"))
+              send_client_message(connection, socket_message.new("enqueued", "User successfully created and enqueued"))
 
               new_state |> actor.continue
             }
