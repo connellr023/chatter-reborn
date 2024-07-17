@@ -1,8 +1,26 @@
-import { useEffect, useRef, useState } from "react";
-import { AppContext } from "../contexts/appContext";
+import { useContext, useEffect, useState } from "react";
+import { ViewContext, Views } from "../contexts/viewContext";
+import Message, { MessageEvent } from "../models/message";
 
-const StartView = () => {
+type StartViewProps = {
+  socket: WebSocket
+}
+
+const StartView: React.FC<StartViewProps> = ({ socket }) => {
   const [name, setName] = useState("")
+  const { setView } = useContext(ViewContext)
+
+  useEffect(() => {
+    socket.addEventListener("message", (event) => {
+      const data: Message = JSON.parse(event.data)
+
+      if (data.event === MessageEvent.Enqueued) {
+        setView(Views.Chat)
+      }
+    })
+
+    return () => socket.removeEventListener("message", () => {})
+  })
 
   const join = () => {
     if (!name) {
@@ -10,27 +28,26 @@ const StartView = () => {
       return
     }
 
-    socket.current?.send(JSON.stringify({ event: "join", body: name }))
+    const message: Message = {
+      event: MessageEvent.Join,
+      body: name
+    }
+
+    socket.send(JSON.stringify(message))
   }
 
   return (
-    <AppContext.Consumer >
-      {(context) => {
-        return (
-          <>
-            <h1>Chatter</h1>
-            <div>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter a name"
-              />
-              <button onClick={join}>Join</button>
-            </div>
-          </>
-        )
-      }}
-    </AppContext.Consumer>
+    <>
+      <h1>Chatter</h1>
+      <div>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter a name"
+        />
+        <button onClick={join}>Join</button>
+      </div>
+    </>
   )
 }
 
