@@ -1,29 +1,29 @@
 import gleam/dynamic
 import gleam/json
 
-pub opaque type Message {
-  Message(
+pub opaque type SocketMessage {
+  SocketMessage(
     event: String,
     body: String
   )
 }
 
-pub fn get_event(message: Message) -> String {
+pub fn get_event(message: SocketMessage) -> String {
   message.event
 }
 
-pub fn get_body(message: Message) -> String {
+pub fn get_body(message: SocketMessage) -> String {
   message.body
 }
 
-pub fn new(event: String, body: String) -> Message {
-  Message(
+pub fn new(event: String, body: String) -> SocketMessage {
+  SocketMessage(
     event: event,
     body: body
   )
 }
 
-pub fn serialize(message: Message) -> String {
+pub fn serialize(message: SocketMessage) -> String {
   json.object([
     #("event", json.string(message.event)),
     #("body", json.string(message.body))
@@ -31,9 +31,9 @@ pub fn serialize(message: Message) -> String {
   |> json.to_string
 }
 
-pub fn deserialize(json: String) -> Result(Message, _) {
+pub fn deserialize(json: String) -> Result(SocketMessage, _) {
   let message_decoder = dynamic.decode2(
-    Message,
+    SocketMessage,
     dynamic.field("event", of: dynamic.string),
     dynamic.field("body", of: dynamic.string)
   )

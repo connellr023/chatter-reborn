@@ -1,4 +1,4 @@
-import models/message
+import gleam/function
 import gleam/io
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
@@ -11,31 +11,35 @@ import mist.{
   type WebsocketMessage,
   type WebsocketConnection,
   Text,
-  Closed,
-  Shutdown
+  Custom
 }
-import models/user.{type User}
-import actors/user_actor
+import models/socket_message.{type SocketMessage}
+import models/chat
 import actors/actor_messages.{
+  type CustomWebsocketMessage,
+  type RoomActorMessage,
   type QueueActorMessage,
-  type UserActorMessage,
   EnqueueUser,
   DequeueUser,
-  GetUser,
-  SendSocketMessage,
-  ShutdownUser
+  DisconnectUser,
+  JoinRoom,
+  SendToClient,
+  Disconnect,
+  SendToAll
 }
 
 pub opaque type WebsocketActorState {
   WebsocketActorState(
-    user_subject: Option(Subject(UserActorMessage)),
+    name: Option(String),
+    ws_subject: Subject(CustomWebsocketMessage),
+    room_subject: Option(Subject(RoomActorMessage)),
     queue_subject: Subject(QueueActorMessage)
   )
 }
 
 pub fn start(
   req: Request(Connection),
-  selector: Option(Selector(t)),
+  selector: Selector(CustomWebsocketMessage),
   queue_subject: Subject(QueueActorMessage)
 ) -> Response(ResponseData) {
   mist.websocket(
@@ -43,104 +47,112 @@ pub fn start(
     on_init: fn(_) {
       io.println("New connection initialized")
 
+      let ws_subject = process.new_subject()
+      let new_selector = selector
+      |> process.selecting(ws_subject, function.identity)
+
       let state = WebsocketActorState(
-        user_subject: None,
+        name: None,
+        ws_subject: ws_subject,
+        room_subject: None,
         queue_subject: queue_subject
       )
 
-      #(state, selector)
+      #(state, Some(new_selector))
     },
     on_close: fn(state) {
       io.println("A connection was closed")
-      state |> shutdown_and_dequeue_user
+      state |> cleanup
 
       Nil
     },
-    handler: handle_websocket_message
+    handler: handle_message
   )
 }
 
-fn handle_websocket_message(
+fn handle_message(
   state: WebsocketActorState,
   connection: WebsocketConnection,
-  message: WebsocketMessage(t)
-) -> Next(t, WebsocketActorState) {
+  message: WebsocketMessage(CustomWebsocketMessage)
+) -> Next(CustomWebsocketMessage, WebsocketActorState) {
   case message {
+    Custom(message) -> case message {
+      JoinRoom(room_subject) -> {
+        let new_state = WebsocketActorState(
+          ..state,
+          room_subject: Some(room_subject)
+        )
+
+        new_state |> actor.continue
+      }
+      SendToClient(message) -> {
+        send_client_message(connection, message)
+        state |> actor.continue
+      }
+      Disconnect -> {
+        io.println("disconnect")
+        state |> actor.continue
+      }
+    }
     Text(json) -> {
-      let message = json |> message.deserialize
+      let message = json |> socket_message.deserialize
 
       case message {
-        Ok(message) -> case message.get_event(message) {
-          "join" -> case state.user_subject {
-            Some(_) -> {
-              let name = message.get_body(message)
-              let user = user.new(connection, name)
-              let new_state = start_and_enqueue_user(user, state)
+        Ok(message) -> case socket_message.get_event(message) {
+          "join" -> case state.name {
+            Some(_) -> state |> actor.continue
+            None -> {
+              let name = socket_message.get_body(message)
+              let new_state = WebsocketActorState(
+                ..state,
+                name: Some(name)
+              )
 
-              case new_state.user_subject {
-                Some(user_subject) -> {
-                  let created_response = message.new("created", "User successfully created")
-                  process.send(user_subject, SendSocketMessage(created_response))
-                }
-                None -> Nil
-              }
+              process.send(state.queue_subject, EnqueueUser(state.ws_subject))
+              send_client_message(connection, socket_message.new("queued", "User successfully created and enqueued"))
 
               new_state |> actor.continue
             }
-            None -> state |> actor.continue
           }
-          "chat" -> case state.user_subject { // For now
-            Some(_user) -> state |> actor.continue
-            None -> state |> actor.continue
+          "chat" -> {
+            {
+              use room_subject <- option.then(state.room_subject)
+              use name <- option.then(state.name)
+
+              let content = socket_message.get_body(message)
+              let chat = chat.new(name, content)
+
+              Some(process.send(room_subject, SendToAll(chat)))
+            }
+
+            state |> actor.continue
           }
           _ -> state |> actor.continue
         }
         Error(_) -> {
-          case state.user_subject {
-            Some(user_subject) -> {
-              let error_response = message.new("error", "Failed to decode message")
-              process.send(user_subject, SendSocketMessage(error_response))
-            }
-            None -> Nil
-          }
-
+          send_client_message(connection, socket_message.new("error", "Failed to decode message"))
           state |> actor.continue
         }
       }
     }
-    Closed | Shutdown -> {
-      state |> shutdown_and_dequeue_user
+    _ -> {
+      cleanup(state)
       Stop(Normal)
     }
-    _ -> state |> actor.continue
   }
 }
 
-fn start_and_enqueue_user(user: User, state: WebsocketActorState) -> WebsocketActorState {
-  let user_subject = user_actor.start(user)
+fn send_client_message(connection: WebsocketConnection, message: SocketMessage) {
+  let response = message |> socket_message.serialize
+  let assert Ok(_) = mist.send_text_frame(connection, response)
 
-  // Send message to queue actor to enqueue the new user subject
-  process.send(state.queue_subject, EnqueueUser(user: user, user_subject: user_subject))
-
-  WebsocketActorState(
-    ..state,
-    user_subject: Some(user_subject)
-  )
+  Nil
 }
 
-fn shutdown_and_dequeue_user(state: WebsocketActorState) -> WebsocketActorState {
-  case state.user_subject {
-    Some(user_subject) -> {
-      let user = process.call(user_subject, GetUser, 1000)
+fn cleanup(state: WebsocketActorState) {
+  process.send(state.queue_subject, DequeueUser(state.ws_subject))
 
-      process.send(state.queue_subject, DequeueUser(user))
-      process.send(user_subject, ShutdownUser)
-
-      WebsocketActorState(
-        ..state,
-        user_subject: None
-      )
-    }
-    None -> state
-  }
+  option.then(state.room_subject, fn(room_subject) {
+    Some(process.send(room_subject, DisconnectUser(state.ws_subject)))
+  })
 }

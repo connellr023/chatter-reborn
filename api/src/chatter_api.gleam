@@ -1,5 +1,4 @@
 import gleam/erlang/process
-import gleam/option.{Some}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/bytes_builder
@@ -11,12 +10,11 @@ const port: Int = 3000
 
 pub fn main() {
   let queue_actor = queue_actor.start()
+  let selector = process.new_selector()
 
   let assert Ok(_) = fn(req: Request(Connection)) -> Response(ResponseData) {
-    let selector = process.new_selector()
-
     case request.path_segments(req) {
-      ["api", "connect"] -> websocket_actor.start(req, Some(selector), queue_actor)
+      ["api", "connect"] -> websocket_actor.start(req, selector, queue_actor)
       _ -> response.new(404) |> response.set_body(Bytes(bytes_builder.new()))
     }
   }

@@ -1,22 +1,20 @@
 import gleam/erlang/process.{type Subject}
-import models/message.{type Message}
-import models/user.{type User}
+import models/socket_message.{type SocketMessage}
+import models/chat.{type Chat}
 
-pub type UserActorMessage {
-  GetUser(client: Subject(User))
+pub type CustomWebsocketMessage {
   JoinRoom(room_subject: Subject(RoomActorMessage))
-  SendSocketMessage(message: Message)
-  SendToRoom(message: Message)
-  ShutdownUser
+  SendToClient(message: SocketMessage)
+  Disconnect
 }
 
 pub type RoomActorMessage {
-  DisconnectUser(user: User)
-  SendToAll(message: Message)
+  DisconnectUser(user_subject: Subject(CustomWebsocketMessage))
+  SendToAll(chat: Chat)
 }
 
 pub type QueueActorMessage {
-  EnqueueUser(user: User, user_subject: Subject(UserActorMessage))
-  DequeueUser(user: User)
+  EnqueueUser(user_subject: Subject(CustomWebsocketMessage))
+  DequeueUser(user_subject: Subject(CustomWebsocketMessage))
   ShutdownQueue
 }
