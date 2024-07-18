@@ -9,41 +9,54 @@ import Credit from "./components/Credit"
 
 const App = () => {
   const [view, setView] = useState<Views>(Views.Start)
-  const socket = useRef<WebSocket | null>(null)
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
+
+  const socketRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
-    socket.current = new WebSocket("ws://localhost:3000/api/connect")
+    const ws = new WebSocket("ws://localhost:3000/api/connect")
 
-    socket.current.addEventListener("open", () => {
+    ws.addEventListener("open", () => {
       setView(Views.Start)
+      setIsSocketConnected(true)
+
       console.log("Connected to server")
     })
 
-    socket.current.addEventListener("close", () => {
+    ws.addEventListener("close", () => {
       setView(Views.Error)
+      setIsSocketConnected(false)
+
       console.log("Connection closed")
     })
 
-    socket.current.addEventListener("error", () => {
+    ws.addEventListener("error", () => {
       setView(Views.Error)
+      setIsSocketConnected(false)
       console.log("Error connecting to server")
     })
 
-    return () => socket.current?.close()
+    socketRef.current = ws
+
+    return () => {
+      socketRef.current?.close()
+      socketRef.current = null
+      setIsSocketConnected(false)
+    }
   }, [])
 
   const renderViews = () => {
-    if (!socket.current) {
+    if (!isSocketConnected) {
       return <div>Loading...</div>
     }
 
     switch (view) {
       case Views.Start:
-        return <StartView socket={socket.current} setView={setView} />
+        return <StartView socket={socketRef.current!} setView={setView} />
       case Views.Chat:
-        return <ChatView socket={socket.current} setView={setView} />
+        return <ChatView socket={socketRef.current!} setView={setView} />
       case Views.Queue:
-        return <QueueView socket={socket.current} setView={setView} />
+        return <QueueView socket={socketRef.current!} setView={setView} />
       case Views.Error:
         return <ErrorView />
     }

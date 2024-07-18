@@ -15,7 +15,6 @@ const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
 
       switch (data.event) {
         case MessageEvent.Chat:
-          console.log(data.body)
           setChats((prevChats) => [...prevChats, data.body])
           break
         case MessageEvent.Enqueued:

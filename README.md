@@ -5,6 +5,7 @@
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![Erlang](https://img.shields.io/badge/Erlang+Gleam-white.svg?style=for-the-badge&logo=erlang&logoColor=a90533)
+![API CI Status](https://img.shields.io/github/actions/workflow/status/connellr023/chatter-reborn/api_ci.yml?style=for-the-badge&logo=erlang)
 
 <br />
 
