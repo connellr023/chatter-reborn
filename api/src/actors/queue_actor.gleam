@@ -7,8 +7,7 @@ import actors/actor_messages.{
   type CustomWebsocketMessage,
   type QueueActorMessage,
   EnqueueUser,
-  DequeueUser,
-  ShutdownQueue
+  DequeueUser
 }
 
 pub opaque type QueueActorState {
@@ -53,6 +52,5 @@ fn handle_message(
 
       new_state |> actor.continue
     }
-    ShutdownQueue -> Stop(Normal)
   }
 }
