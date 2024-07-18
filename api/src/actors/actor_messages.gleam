@@ -16,5 +16,4 @@ pub type RoomActorMessage {
 pub type QueueActorMessage {
   EnqueueUser(user_subject: Subject(CustomWebsocketMessage))
   DequeueUser(user_subject: Subject(CustomWebsocketMessage))
-  ShutdownQueue
 }

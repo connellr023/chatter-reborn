@@ -1,15 +1,11 @@
+import actors/actor_messages.{
+  type CustomWebsocketMessage, type QueueActorMessage, DequeueUser, EnqueueUser,
+}
 import actors/room_actor
+import gleam/erlang/process.{type Subject}
 import gleam/io
 import gleam/list
-import gleam/otp/actor.{type Next, Stop}
-import gleam/erlang/process.{type Subject, Normal}
-import actors/actor_messages.{
-  type CustomWebsocketMessage,
-  type QueueActorMessage,
-  EnqueueUser,
-  DequeueUser,
-  ShutdownQueue
-}
+import gleam/otp/actor.{type Next}
 
 pub opaque type QueueActorState {
   QueueActorState(queue: List(Subject(CustomWebsocketMessage)))
@@ -24,7 +20,7 @@ pub fn start() -> Subject(QueueActorMessage) {
 
 fn handle_message(
   message: QueueActorMessage,
-  state: QueueActorState
+  state: QueueActorState,
 ) -> Next(QueueActorMessage, QueueActorState) {
   case message {
     EnqueueUser(user_subject) -> {
@@ -48,11 +44,11 @@ fn handle_message(
     DequeueUser(user_subject) -> {
       io.println("Dequeued a user")
 
-      let new_queue = list.filter(state.queue, fn(subject) { subject != user_subject })
+      let new_queue =
+        list.filter(state.queue, fn(subject) { subject != user_subject })
       let new_state = QueueActorState(queue: new_queue)
 
       new_state |> actor.continue
     }
-    ShutdownQueue -> Stop(Normal)
   }
 }
