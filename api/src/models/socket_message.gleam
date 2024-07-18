@@ -1,5 +1,5 @@
 import gleam/dynamic
-import gleam/json
+import gleam/json.{type Json}
 
 pub opaque type SocketMessage {
   SocketMessage(
@@ -23,12 +23,18 @@ pub fn new(event: String, body: String) -> SocketMessage {
   )
 }
 
-pub fn serialize(message: SocketMessage) -> String {
+pub fn to_json(message: SocketMessage) -> Json {
   json.object([
     #("event", json.string(message.event)),
     #("body", json.string(message.body))
   ])
-  |> json.to_string
+}
+
+pub fn custom_body_to_json(event: String, body: Json) -> Json {
+  json.object([
+    #(event, json.string("chat")),
+    #("body", body)
+  ])
 }
 
 pub fn deserialize(json: String) -> Result(SocketMessage, _) {

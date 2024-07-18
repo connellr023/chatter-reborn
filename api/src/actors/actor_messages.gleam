@@ -1,10 +1,10 @@
 import gleam/erlang/process.{type Subject}
-import models/socket_message.{type SocketMessage}
+import gleam/json.{type Json}
 import models/chat.{type Chat}
 
 pub type CustomWebsocketMessage {
   JoinRoom(room_subject: Subject(RoomActorMessage))
-  SendToClient(message: SocketMessage)
+  SendToClient(message_json: Json)
   Disconnect
 }
 

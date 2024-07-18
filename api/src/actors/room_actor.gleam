@@ -38,11 +38,11 @@ fn handle_message(
 ) -> Next(RoomActorMessage, RoomActorState) {
   case message {
     SendToAll(chat) -> {
-      let body = chat |> chat.serialize
-      let message = socket_message.new("chat", body)
+      let body_json = chat |> chat.to_json
+      let message_json = socket_message.custom_body_to_json("chat", body_json)
 
       list.each(state.participants, fn(participant) {
-        process.send(participant, SendToClient(message))
+        process.send(participant, SendToClient(message_json))
       })
 
       state |> actor.continue

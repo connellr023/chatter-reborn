@@ -1,4 +1,4 @@
-import gleam/json
+import gleam/json.{type Json}
 
 pub opaque type Chat {
   Chat(
@@ -14,10 +14,9 @@ pub fn new(source: String, content: String) -> Chat {
   )
 }
 
-pub fn serialize(chat: Chat) -> String {
+pub fn to_json(chat: Chat) -> Json {
   json.object([
     #("source", json.string(chat.source)),
     #("content", json.string(chat.content))
   ])
-  |> json.to_string()
 }

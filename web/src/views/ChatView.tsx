@@ -9,11 +9,10 @@ const ChatView: React.FC<ViewProps> = ({ socket }) => {
 
   useEffect(() => {
     const eventHandler = (event: globalThis.MessageEvent) => {
-      const data: Message = JSON.parse(event.data)
-      const chat: Chat = JSON.parse(data.body)
+      const data: Message<Chat> = JSON.parse(event.data)
 
       if (data.event === MessageEvent.Chat) {
-        setChats((prevChats) => [...prevChats, chat])
+        setChats((prevChats) => [...prevChats, data.body])
       }
     }
 
