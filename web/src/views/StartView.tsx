@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Views, { ViewProps } from "../models/views";
 import Message, { MessageEvent } from "../models/message";
 
+const nameRegex = /^[a-zA-Z0-9]{3,16}$/
+
 const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
   const [name, setName] = useState("")
 
@@ -24,9 +26,14 @@ const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
       return
     }
 
+    if (!nameRegex.test(name)) {
+      alert("Name must be between 3 and 16 characters and contain only letters and numbers")
+      return
+    }
+
     const message: Message = {
       event: MessageEvent.Join,
-      body: name
+      body: name.trim()
     }
 
     socket.send(JSON.stringify(message))

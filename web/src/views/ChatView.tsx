@@ -3,6 +3,8 @@ import Views, { ViewProps } from "../models/views"
 import Message, { MessageEvent } from "../models/message"
 import Chat from "../models/chat"
 
+const chatRegex = /^[a-zA-Z0-9 .,!?'"@#%^&*()_+-=;:~`]*$/
+
 const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [chat, setChat] = useState("")
@@ -29,11 +31,14 @@ const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
   }, [socket, setChats, setView])
 
   const sendChat = () => {
-    if (chat.trim() === "") return
+    if (!chatRegex.test(chat)) {
+      alert("Invalid chat message")
+      return
+    }
 
     const message: Message = {
       event: MessageEvent.Chat,
-      body: chat
+      body: chat.trim()
     }
 
     socket.send(JSON.stringify(message))

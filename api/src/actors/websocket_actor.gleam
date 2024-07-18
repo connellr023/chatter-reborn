@@ -1,5 +1,6 @@
 import gleam/function
 import gleam/io
+import gleam/regex
 import gleam/json.{type Json}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
@@ -109,14 +110,29 @@ fn handle_message(
           "join" -> case state.name {
             Some(_) -> state |> actor.continue
             None -> {
+              let assert Ok(name_pattern) = regex.from_string("^[a-zA-Z0-9]{3,16}$")
               let name = socket_message.get_body(message)
-              let new_state = WebsocketActorState(
-                ..state,
-                name: Some(name)
-              )
 
-              request_enqueue(connection, state)
-              new_state |> actor.continue
+              case regex.check(name_pattern, name) {
+                True -> {
+                  let new_state = WebsocketActorState(
+                    ..state,
+                    name: Some(name)
+                  )
+
+                  request_enqueue(connection, state)
+                  new_state |> actor.continue
+                }
+                False -> {
+                  send_client_json(
+                    connection,
+                    socket_message.new("error", "Invalid name received")
+                    |> socket_message.to_json
+                  )
+
+                  state |> actor.continue
+                }
+              }
             }
           }
           "chat" -> {
@@ -125,9 +141,15 @@ fn handle_message(
               use name <- option.then(state.name)
 
               let content = socket_message.get_body(message)
-              let chat = chat.new(name, content)
+              let assert Ok(chat_pattern) = regex.from_string("^[a-zA-Z0-9 .,!?'\"@#%^&*()_+-=;:~`]*$")
 
-              Some(process.send(room_subject, SendToAll(chat)))
+              case regex.check(chat_pattern, content) {
+                True -> {
+                  let chat = chat.new(name, content)
+                  Some(process.send(room_subject, SendToAll(chat)))
+                }
+                False -> None
+              }
             }
 
             state |> actor.continue

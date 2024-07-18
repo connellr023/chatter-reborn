@@ -14,6 +14,10 @@ pub fn new(source: String, content: String) -> Chat {
   )
 }
 
+pub fn get_content(chat: Chat) -> String {
+  chat.content
+}
+
 pub fn to_json(chat: Chat) -> Json {
   json.object([
     #("source", json.string(chat.source)),
