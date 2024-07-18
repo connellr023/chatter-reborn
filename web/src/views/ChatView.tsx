@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react"
-import { ViewProps } from "../models/views"
+import Views, { ViewProps } from "../models/views"
 import Message, { MessageEvent } from "../models/message"
 import Chat from "../models/chat"
 
-const ChatView: React.FC<ViewProps> = ({ socket }) => {
+const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [chat, setChat] = useState("")
 
@@ -11,14 +11,22 @@ const ChatView: React.FC<ViewProps> = ({ socket }) => {
     const eventHandler = (event: globalThis.MessageEvent) => {
       const data: Message<Chat> = JSON.parse(event.data)
 
-      if (data.event === MessageEvent.Chat) {
-        setChats((prevChats) => [...prevChats, data.body])
+      switch (data.event) {
+        case MessageEvent.Chat:
+          console.log(data.body)
+          setChats((prevChats) => [...prevChats, data.body])
+          break
+        case MessageEvent.Enqueued:
+          setView(Views.Queue)
+          break
+        default:
+          break
       }
     }
 
     socket.addEventListener("message", eventHandler)
     return () => socket.removeEventListener("message", eventHandler)
-  }, [socket, setChats])
+  }, [socket, setChats, setView])
 
   const sendChat = () => {
     if (chat.trim() === "") return

@@ -14,7 +14,7 @@ import mist.{
   Text,
   Custom
 }
-import models/socket_message.{type SocketMessage}
+import models/socket_message
 import models/chat
 import actors/actor_messages.{
   type CustomWebsocketMessage,
@@ -97,10 +97,8 @@ fn handle_message(
         state |> actor.continue
       }
       Disconnect -> {
-        option.then(state.name, fn(name) { Some(io.println("Disconnected " <> name)) })
-
-        cleanup(state)
-        Stop(Normal)
+        request_enqueue(connection, state)
+        state |> actor.continue
       }
     }
     Text(json) -> {
@@ -117,13 +115,7 @@ fn handle_message(
                 name: Some(name)
               )
 
-              process.send(state.queue_subject, EnqueueUser(state.ws_subject))
-              send_client_json(
-                connection,
-                socket_message.new("enqueued", "User successfully created and enqueued")
-                |> socket_message.to_json
-              )
-
+              request_enqueue(connection, state)
               new_state |> actor.continue
             }
           }
@@ -165,6 +157,15 @@ fn send_client_json(connection: WebsocketConnection, json: Json) {
   let assert Ok(_) = mist.send_text_frame(connection, response)
 
   Nil
+}
+
+fn request_enqueue(connection: WebsocketConnection, state: WebsocketActorState) {
+  process.send(state.queue_subject, EnqueueUser(state.ws_subject))
+  send_client_json(
+    connection,
+    socket_message.new("enqueued", "User successfully enqueued")
+    |> socket_message.to_json
+  )
 }
 
 fn cleanup(state: WebsocketActorState) {

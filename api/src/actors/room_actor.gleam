@@ -63,9 +63,12 @@ fn handle_message(
       // Close the room if one or no participants left
       case new_state.participants {
         [] -> {
+          io.println("No participants left. Closed a room actor")
           Stop(Normal)
         }
         [subject] -> {
+          io.println("Only one participant left. Closed a room actor")
+
           process.send(subject, Disconnect)
           Stop(Normal)
         }

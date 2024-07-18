@@ -32,7 +32,7 @@ pub fn to_json(message: SocketMessage) -> Json {
 
 pub fn custom_body_to_json(event: String, body: Json) -> Json {
   json.object([
-    #(event, json.string("chat")),
+    #("event", json.string(event)),
     #("body", body)
   ])
 }
