@@ -45,7 +45,7 @@ const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
   }
 
   return (
-    <div>
+    <div className="flex-wrapper">
       <h1>Chat</h1>
       <div>
         <input
@@ -54,6 +54,8 @@ const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
           placeholder="Type your message here"
         />
         <button onClick={sendChat}>Send</button>
+        <button>Skip</button>
+        <button>Disconnect</button>
         <ul>
           {chats.map((chat, index) => (
             <li key={index}>

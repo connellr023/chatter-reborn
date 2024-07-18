@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import Views, { ViewProps } from "../models/views"
 import Message, { MessageEvent } from "../models/message"
+import Logo from "../components/Logo"
 
 const QueueView: React.FC<ViewProps> = ({ socket, setView }) => {
   useEffect(() => {
@@ -17,9 +18,12 @@ const QueueView: React.FC<ViewProps> = ({ socket, setView }) => {
   }, [socket, setView])
 
   return (
-    <div>
-      <h1>You are in queue...</h1>
-    </div>
+    <>
+      <Logo />
+      <div className="flex-wrapper">
+        <h1>You are in queue...</h1>
+      </div>
+    </>
   )
 }
 

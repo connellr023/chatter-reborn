@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
-import Views, { ViewProps } from "../models/views";
-import Message, { MessageEvent } from "../models/message";
+import { useEffect, useState } from "react"
+
+import Views, { ViewProps } from "../models/views"
+import Message, { MessageEvent } from "../models/message"
+import Logo from "../components/Logo"
+import Typer from "../components/Typer"
 
 const nameRegex = /^[a-zA-Z0-9]{3,16}$/
 
@@ -41,14 +44,18 @@ const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
 
   return (
     <>
-      <h1>Chatter</h1>
-      <div>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Enter a name"
-        />
-        <button onClick={join}>Join</button>
+      <Logo />
+      <div className="flex-wrapper">
+        <h1><Typer value="Welcome" ms={170} /></h1>
+        <div className="start-input-wrapper">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name..."
+          />
+          <button onClick={join}>Join</button>
+          <p>Enter a name above to start chatting</p>
+        </div>
       </div>
     </>
   )
