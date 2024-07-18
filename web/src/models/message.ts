@@ -1,12 +1,14 @@
-enum MessageEvent {
+export enum MessageEvent {
   Join = "join",
+  Enqueued = "enqueued",
+  Joined = "joined",
   Chat = "chat",
   Error = "error"
 }
 
-type Message = {
+type Message<BodyType = string> = {
   event: MessageEvent,
-  body: string
+  body: BodyType
 }
 
 export default Message;

@@ -1,5 +1,6 @@
 import gleam/function
 import gleam/io
+import gleam/json.{type Json}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/erlang/process.{type Subject, type Selector, Normal}
@@ -13,7 +14,7 @@ import mist.{
   Text,
   Custom
 }
-import models/socket_message.{type SocketMessage}
+import models/socket_message
 import models/chat
 import actors/actor_messages.{
   type CustomWebsocketMessage,
@@ -83,14 +84,20 @@ fn handle_message(
           room_subject: Some(room_subject)
         )
 
+        send_client_json(
+          connection,
+          socket_message.new("joined", "You have joined a room")
+          |> socket_message.to_json
+        )
+
         new_state |> actor.continue
       }
-      SendToClient(message) -> {
-        send_client_message(connection, message)
+      SendToClient(message_json) -> {
+        send_client_json(connection, message_json)
         state |> actor.continue
       }
       Disconnect -> {
-        io.println("disconnect")
+        request_enqueue(connection, state)
         state |> actor.continue
       }
     }
@@ -108,9 +115,7 @@ fn handle_message(
                 name: Some(name)
               )
 
-              process.send(state.queue_subject, EnqueueUser(state.ws_subject))
-              send_client_message(connection, socket_message.new("queued", "User successfully created and enqueued"))
-
+              request_enqueue(connection, state)
               new_state |> actor.continue
             }
           }
@@ -130,7 +135,12 @@ fn handle_message(
           _ -> state |> actor.continue
         }
         Error(_) -> {
-          send_client_message(connection, socket_message.new("error", "Failed to decode message"))
+          send_client_json(
+            connection,
+            socket_message.new("error", "Failed to decode message")
+            |> socket_message.to_json
+          )
+
           state |> actor.continue
         }
       }
@@ -142,11 +152,20 @@ fn handle_message(
   }
 }
 
-fn send_client_message(connection: WebsocketConnection, message: SocketMessage) {
-  let response = message |> socket_message.serialize
+fn send_client_json(connection: WebsocketConnection, json: Json) {
+  let response = json |> json.to_string
   let assert Ok(_) = mist.send_text_frame(connection, response)
 
   Nil
+}
+
+fn request_enqueue(connection: WebsocketConnection, state: WebsocketActorState) {
+  process.send(state.queue_subject, EnqueueUser(state.ws_subject))
+  send_client_json(
+    connection,
+    socket_message.new("enqueued", "User successfully enqueued")
+    |> socket_message.to_json
+  )
 }
 
 fn cleanup(state: WebsocketActorState) {
