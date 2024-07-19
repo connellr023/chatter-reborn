@@ -12,6 +12,7 @@ import gleam/json.{type Json}
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor.{type Next, Stop}
 import gleam/regex
+import gleam/string
 import mist.{
   type Connection, type ResponseData, type WebsocketConnection,
   type WebsocketMessage, Custom, Text,
@@ -108,7 +109,9 @@ fn handle_message(
                     regex.from_string("^[a-zA-Z0-9]{3,16}$")
                   let name = socket_message.get_body(message)
 
-                  case regex.check(name_pattern, name) {
+                  case
+                    regex.check(name_pattern, name) && !string.is_empty(name)
+                  {
                     True -> {
                       let new_state =
                         WebsocketActorState(..state, name: Some(name))
@@ -137,7 +140,10 @@ fn handle_message(
                 let assert Ok(chat_pattern) =
                   regex.from_string("^[a-zA-Z0-9 .,!?'\"@#%^&*()_+-=;:~`]*$")
 
-                case regex.check(chat_pattern, content) {
+                case
+                  regex.check(chat_pattern, content)
+                  && !string.is_empty(content)
+                {
                   True -> {
                     let chat = chat.new(name, content)
                     Some(process.send(room_subject, SendToAll(chat)))
