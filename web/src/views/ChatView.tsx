@@ -15,7 +15,7 @@ type ChatViewProps = {
   send: (data: string) => void
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ participants, addSocketListener, removeSocketListener, send }) => {
+const ChatView: React.FC<ChatViewProps> = ({ participants, setView, addSocketListener, removeSocketListener, send }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [chat, setChat] = useState("")
   const [isError, setIsError] = useState(false)
@@ -37,6 +37,25 @@ const ChatView: React.FC<ChatViewProps> = ({ participants, addSocketListener, re
     setIsDisabled(true)
     setIsError(false)
     setChat("")
+  }
+
+  const requestDisconnect = () => {
+    const message: Message = {
+      event: MessageEvent.Disconnect,
+      body: ""
+    }
+
+    send(JSON.stringify(message))
+    setView(Views.Start)
+  }
+
+  const requestSkip = () => {
+    const message: Message = {
+      event: MessageEvent.Skip,
+      body: ""
+    }
+
+    send(JSON.stringify(message))
   }
 
   const handleChatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,8 +81,8 @@ const ChatView: React.FC<ChatViewProps> = ({ participants, addSocketListener, re
           />
           <div className="button-wrapper">
             <button onClick={sendChat} disabled={isDisabled}>Send</button>
-            <button>Skip</button>
-            <button>Disconnect</button>
+            <button onClick={requestSkip}>Skip</button>
+            <button onClick={requestDisconnect}>Disconnect</button>
           </div>
           <ul>
             {chats.map((chat, index) => (

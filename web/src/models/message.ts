@@ -3,7 +3,9 @@ export enum MessageEvent {
   Enqueued = "enqueued",
   Joined = "joined",
   Chat = "chat",
-  Error = "error"
+  Error = "error",
+  Disconnect = "disconnect",
+  Skip = "skip"
 }
 
 type Message<BodyType = string> = {
