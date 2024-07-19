@@ -10,11 +10,11 @@ import models/chat
 import models/socket_message
 
 pub opaque type RoomActorState {
-  RoomActorState(participants: List(Subject(CustomWebsocketMessage)))
+  RoomActorState(participants: List(#(String, Subject(CustomWebsocketMessage))))
 }
 
 pub fn start(
-  participants: List(Subject(CustomWebsocketMessage)),
+  participants: List(#(String, Subject(CustomWebsocketMessage))),
 ) -> Subject(RoomActorMessage) {
   io.println("Started new room actor")
 
@@ -23,7 +23,19 @@ pub fn start(
 
   // Tell participants they have been put into a room
   list.each(participants, fn(participant) {
-    process.send(participant, JoinRoom(room_subject: actor))
+    process.send(
+      participant.1,
+      JoinRoom(
+        room_subject: actor,
+        participants: participants
+          |> list.filter_map(fn(p) {
+            case p.1 != participant.1 {
+              True -> Ok(p.0)
+              False -> Error(Nil)
+            }
+          }),
+      ),
+    )
   })
 
   actor
@@ -38,8 +50,8 @@ fn handle_message(
       let body_json = chat |> chat.to_json
       let message_json = socket_message.custom_body_to_json("chat", body_json)
 
-      list.each(state.participants, fn(participant) {
-        process.send(participant, SendToClient(message_json))
+      list.each(state.participants, fn(p) {
+        process.send(p.1, SendToClient(message_json))
       })
 
       state |> actor.continue
@@ -47,8 +59,8 @@ fn handle_message(
     DisconnectUser(user_subject) -> {
       let new_state =
         RoomActorState(
-          participants: list.filter(state.participants, fn(subject) {
-            case subject != user_subject {
+          participants: list.filter(state.participants, fn(p) {
+            case p.1 != user_subject {
               True -> True
               False -> {
                 io.println("Disconnected a user from a room")
@@ -64,10 +76,10 @@ fn handle_message(
           io.println("No participants left. Closed a room actor")
           Stop(Normal)
         }
-        [subject] -> {
+        [participant] -> {
           io.println("Only one participant left. Closed a room actor")
 
-          process.send(subject, Disconnect)
+          process.send(participant.1, Disconnect)
           Stop(Normal)
         }
         _ -> new_state |> actor.continue

@@ -8,7 +8,7 @@ import gleam/list
 import gleam/otp/actor.{type Next}
 
 pub opaque type QueueActorState {
-  QueueActorState(queue: List(Subject(CustomWebsocketMessage)))
+  QueueActorState(queue: List(#(String, Subject(CustomWebsocketMessage))))
 }
 
 pub fn start() -> Subject(QueueActorMessage) {
@@ -23,18 +23,19 @@ fn handle_message(
   state: QueueActorState,
 ) -> Next(QueueActorMessage, QueueActorState) {
   case message {
-    EnqueueUser(user_subject) -> {
+    EnqueueUser(name, user_subject) -> {
       io.println("Enqueued a user")
 
+      let participant = #(name, user_subject)
       let new_queue = case state.queue {
-        [] -> [user_subject]
+        [] -> [participant]
         [first] -> {
-          room_actor.start([first, user_subject])
+          room_actor.start([first, participant])
           []
         }
         [first, second, ..rest] -> {
           room_actor.start([first, second])
-          list.append(rest, [user_subject])
+          list.append(rest, [participant])
         }
       }
       let new_state = QueueActorState(queue: new_queue)
@@ -44,8 +45,7 @@ fn handle_message(
     DequeueUser(user_subject) -> {
       io.println("Dequeued a user")
 
-      let new_queue =
-        list.filter(state.queue, fn(subject) { subject != user_subject })
+      let new_queue = list.filter(state.queue, fn(p) { p.1 != user_subject })
       let new_state = QueueActorState(queue: new_queue)
 
       new_state |> actor.continue

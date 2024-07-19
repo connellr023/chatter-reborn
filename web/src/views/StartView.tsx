@@ -1,33 +1,31 @@
-import { useEffect, useState } from "react";
-import Views, { ViewProps } from "../models/views";
-import Message, { MessageEvent } from "../models/message";
+import { useState } from "react"
+
+import Message, { MessageEvent } from "../models/message"
+import Logo from "../components/Logo"
+import Typer from "../components/Typer"
 
 const nameRegex = /^[a-zA-Z0-9]{3,16}$/
 
-const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
+type StartViewProps = {
+  send: (data: string) => void
+}
+
+const StartView: React.FC<StartViewProps> = ({ send }) => {
   const [name, setName] = useState("")
+  const [isError, setIsError] = useState(false)
+  const [isDisabled, setIsDisabled] = useState(true)
 
-  useEffect(() => {
-    const eventHandler = (event: globalThis.MessageEvent) => {
-      const data: Message = JSON.parse(event.data)
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isValid = nameRegex.test(e.target.value) && e.target.value.length > 0
 
-      if (data.event === MessageEvent.Enqueued) {
-        setView(Views.Queue)
-      }
-    }
-
-    socket.addEventListener("message", eventHandler)
-    return () => socket.removeEventListener("message", eventHandler)
-  }, [socket, setView])
+    setIsError(!isValid)
+    setIsDisabled(!isValid)
+    setName(e.target.value)
+  }
 
   const join = () => {
     if (!name) {
       alert("Please enter a name")
-      return
-    }
-
-    if (!nameRegex.test(name)) {
-      alert("Name must be between 3 and 16 characters and contain only letters and numbers")
       return
     }
 
@@ -36,19 +34,24 @@ const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
       body: name.trim()
     }
 
-    socket.send(JSON.stringify(message))
+    send(JSON.stringify(message))
   }
 
   return (
     <>
-      <h1>Chatter</h1>
-      <div>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Enter a name"
-        />
-        <button onClick={join}>Join</button>
+      <Logo />
+      <div className="flex-wrapper">
+        <h1><Typer value="Welcome" ms={170} /></h1>
+        <div className="input-wrapper">
+          <input
+            className={isError ? "error" : ""}
+            value={name}
+            onChange={handleNameChange}
+            placeholder="Your name..."
+          />
+          <button onClick={join} disabled={isDisabled}>Join</button>
+          <p>Enter a name above to start chatting</p>
+        </div>
       </div>
     </>
   )

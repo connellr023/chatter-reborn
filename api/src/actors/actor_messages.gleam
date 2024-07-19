@@ -3,7 +3,7 @@ import gleam/json.{type Json}
 import models/chat.{type Chat}
 
 pub type CustomWebsocketMessage {
-  JoinRoom(room_subject: Subject(RoomActorMessage))
+  JoinRoom(room_subject: Subject(RoomActorMessage), participants: List(String))
   SendToClient(message_json: Json)
   Disconnect
 }
@@ -14,6 +14,6 @@ pub type RoomActorMessage {
 }
 
 pub type QueueActorMessage {
-  EnqueueUser(user_subject: Subject(CustomWebsocketMessage))
+  EnqueueUser(name: String, user_subject: Subject(CustomWebsocketMessage))
   DequeueUser(user_subject: Subject(CustomWebsocketMessage))
 }

@@ -1,70 +1,81 @@
 import { useEffect, useState } from "react"
-import Views, { ViewProps } from "../models/views"
+
+import Views from "../models/views"
 import Message, { MessageEvent } from "../models/message"
 import Chat from "../models/chat"
+import Logo from "../components/Logo"
 
 const chatRegex = /^[a-zA-Z0-9 .,!?'"@#%^&*()_+-=;:~`]*$/
 
-const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
+type ChatViewProps = {
+  participants: string[],
+  setView: (view: Views) => void,
+  addSocketListener: (event: string, callback: (body: Chat) => void) => void,
+  removeSocketListener: (event: string) => void,
+  send: (data: string) => void
+}
+
+const ChatView: React.FC<ChatViewProps> = ({ participants, addSocketListener, removeSocketListener, send }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [chat, setChat] = useState("")
+  const [isError, setIsError] = useState(false)
+  const [isDisabled, setIsDisabled] = useState(true)
 
   useEffect(() => {
-    const eventHandler = (event: globalThis.MessageEvent) => {
-      const data: Message<Chat> = JSON.parse(event.data)
-
-      switch (data.event) {
-        case MessageEvent.Chat:
-          console.log(data.body)
-          setChats((prevChats) => [...prevChats, data.body])
-          break
-        case MessageEvent.Enqueued:
-          setView(Views.Queue)
-          break
-        default:
-          break
-      }
-    }
-
-    socket.addEventListener("message", eventHandler)
-    return () => socket.removeEventListener("message", eventHandler)
-  }, [socket, setChats, setView])
+    addSocketListener("chat", (chat) => setChats((prevChats) => [...prevChats, chat]))
+    return () => removeSocketListener("chat")
+  }, [addSocketListener, removeSocketListener])
 
   const sendChat = () => {
-    if (!chatRegex.test(chat)) {
-      alert("Invalid chat message")
-      return
-    }
-
     const message: Message = {
       event: MessageEvent.Chat,
       body: chat.trim()
     }
 
-    socket.send(JSON.stringify(message))
+    send(JSON.stringify(message))
+
+    setIsDisabled(true)
+    setIsError(false)
     setChat("")
   }
 
+  const handleChatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isValid = chatRegex.test(e.target.value) && e.target.value.length > 0
+
+    setIsError(!isValid)
+    setIsDisabled(!isValid)
+    setChat(e.target.value)
+  }
+
   return (
-    <div>
-      <h1>Chat</h1>
-      <div>
-        <input
-          value={chat}
-          onChange={(e) => setChat(e.target.value)}
-          placeholder="Type your message here"
-        />
-        <button onClick={sendChat}>Send</button>
-        <ul>
-          {chats.map((chat, index) => (
-            <li key={index}>
-              <p>{chat.source}</p>
-              <p>{chat.content}</p>
-            </li>
-          ))}
-        </ul>
+    <>
+      <Logo />
+      <div className="flex-wrapper chat-view-wrapper">
+        <h1>You are chatting with {participants.join(", ")}!</h1>
+        <p>Say <b>hi</b> by typing in the message box below...</p>
+        <div className="input-wrapper">
+          <input
+            className={isError ? "error" : ""}
+            value={chat}
+            onChange={handleChatChange}
+            placeholder="Type your message here"
+          />
+          <div className="button-wrapper">
+            <button onClick={sendChat} disabled={isDisabled}>Send</button>
+            <button>Skip</button>
+            <button>Disconnect</button>
+          </div>
+          <ul>
+            {chats.map((chat, index) => (
+              <li key={index} className={participants.includes(chat.source) ? "" : "owned"}>
+                <div className="source">{chat.source}</div>
+                <div className="content">{chat.content}</div>
+              </li>
+            )).reverse()}
+          </ul>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 

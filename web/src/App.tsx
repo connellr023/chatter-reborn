@@ -1,51 +1,90 @@
 import { useState, useEffect, useRef } from "react"
+import { useSocket } from "./hooks/useSocket"
 
 import Views from "./models/views"
 import StartView from "./views/StartView"
-import QueueView from "./views/QueueView"
+import MessageView from "./views/MessageView"
 import ChatView from "./views/ChatView"
-import ErrorView from "./views/ErrorView"
 import Credit from "./components/Credit"
+import { MessageEvent } from "./models/message"
 
 const App = () => {
+  const {
+    addListener,
+    removeListener,
+    start,
+    stop,
+    onOpen,
+    onClose,
+    onError,
+    send
+  } = useSocket()
+
   const [view, setView] = useState<Views>(Views.Start)
-  const socket = useRef<WebSocket | null>(null)
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
+
+  const socketRef = useRef<WebSocket | null>(null)
+  const participantsRef = useRef<string[]>([])
 
   useEffect(() => {
-    socket.current = new WebSocket("ws://localhost:3000/api/connect")
+    start()
 
-    socket.current.addEventListener("open", () => {
+    onOpen(() => {
       setView(Views.Start)
+      setIsSocketConnected(true)
+
       console.log("Connected to server")
+
+      onClose(() => {
+        setIsSocketConnected(false)
+        console.log("Connection closed")
+      })
+
+      onError(() => {
+        setIsSocketConnected(false)
+        console.log("Error connecting to server")
+      })
+
+      addListener(MessageEvent.Enqueued, () => {
+        setView(Views.Queue)
+      })
+
+      addListener<string[]>(MessageEvent.Joined, (participants) => {
+        participantsRef.current = participants
+        setView(Views.Chat)
+      })
+
+      addListener<string>(MessageEvent.Error, (error) => {
+        console.error(error)
+      })
     })
 
-    socket.current.addEventListener("close", () => {
-      setView(Views.Error)
-      console.log("Connection closed")
-    })
+    return () => {
+      socketRef.current = null
 
-    socket.current.addEventListener("error", () => {
-      setView(Views.Error)
-      console.log("Error connecting to server")
-    })
-
-    return () => socket.current?.close()
-  }, [])
+      stop()
+      setIsSocketConnected(false)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderViews = () => {
-    if (!socket.current) {
-      return <div>Loading...</div>
+    if (!isSocketConnected) {
+      return <MessageView message="Connecting to endpoint..." />
     }
 
     switch (view) {
       case Views.Start:
-        return <StartView socket={socket.current} setView={setView} />
-      case Views.Chat:
-        return <ChatView socket={socket.current} setView={setView} />
+        return <StartView send={send} />
       case Views.Queue:
-        return <QueueView socket={socket.current} setView={setView} />
-      case Views.Error:
-        return <ErrorView />
+        return <MessageView message="Waiting for a match..." />
+      case Views.Chat:
+        return <ChatView
+          addSocketListener={addListener}
+          removeSocketListener={removeListener}
+          setView={setView}
+          participants={participantsRef.current}
+          send={send}
+        />
     }
   }
 

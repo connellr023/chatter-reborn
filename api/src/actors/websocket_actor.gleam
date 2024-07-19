@@ -12,6 +12,7 @@ import gleam/json.{type Json}
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor.{type Next, Stop}
 import gleam/regex
+import gleam/string
 import mist.{
   type Connection, type ResponseData, type WebsocketConnection,
   type WebsocketMessage, Custom, Text,
@@ -71,14 +72,16 @@ fn handle_message(
   case message {
     Custom(message) ->
       case message {
-        JoinRoom(room_subject) -> {
+        JoinRoom(room_subject, participants) -> {
           let new_state =
             WebsocketActorState(..state, room_subject: Some(room_subject))
 
           send_client_json(
             connection,
-            socket_message.new("joined", "You have joined a room")
-              |> socket_message.to_json,
+            socket_message.custom_body_to_json(
+              "joined",
+              json.array(participants, of: json.string),
+            ),
           )
 
           new_state |> actor.continue
@@ -106,12 +109,14 @@ fn handle_message(
                     regex.from_string("^[a-zA-Z0-9]{3,16}$")
                   let name = socket_message.get_body(message)
 
-                  case regex.check(name_pattern, name) {
+                  case
+                    regex.check(name_pattern, name) && !string.is_empty(name)
+                  {
                     True -> {
                       let new_state =
                         WebsocketActorState(..state, name: Some(name))
 
-                      request_enqueue(connection, state)
+                      request_enqueue(connection, new_state)
                       new_state |> actor.continue
                     }
                     False -> {
@@ -135,7 +140,10 @@ fn handle_message(
                 let assert Ok(chat_pattern) =
                   regex.from_string("^[a-zA-Z0-9 .,!?'\"@#%^&*()_+-=;:~`]*$")
 
-                case regex.check(chat_pattern, content) {
+                case
+                  regex.check(chat_pattern, content)
+                  && !string.is_empty(content)
+                {
                   True -> {
                     let chat = chat.new(name, content)
                     Some(process.send(room_subject, SendToAll(chat)))
@@ -174,12 +182,18 @@ fn send_client_json(connection: WebsocketConnection, json: Json) {
 }
 
 fn request_enqueue(connection: WebsocketConnection, state: WebsocketActorState) {
-  process.send(state.queue_subject, EnqueueUser(state.ws_subject))
-  send_client_json(
-    connection,
-    socket_message.new("enqueued", "User successfully enqueued")
-      |> socket_message.to_json,
-  )
+  {
+    use name <- option.then(state.name)
+
+    process.send(state.queue_subject, EnqueueUser(name, state.ws_subject))
+    Some(send_client_json(
+      connection,
+      socket_message.new("enqueued", "User successfully enqueued")
+        |> socket_message.to_json,
+    ))
+  }
+
+  Nil
 }
 
 fn cleanup(state: WebsocketActorState) {

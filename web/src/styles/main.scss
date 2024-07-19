@@ -1,0 +1,184 @@
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu+Mono&family=Ubuntu:ital,wght@0,400;0,500;1,400;1,500&display=swap");
+@import "variables.scss";
+
+body {
+    margin: auto;
+    font-family: $main-font;
+    color: $main-text-color;
+}
+
+div.flex-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100lvh;
+}
+
+div.input-wrapper {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+
+    $faded-color: darken($main-text-color, 30%);
+    $faded-color-error: darken($red-color, 30%);
+
+    & input {
+        margin-top: 15px;
+        margin-bottom: 13px;
+        color: $main-text-color;
+        outline: none;
+        border: 2px solid $faded-color;
+        background-color: transparent;
+        transition: border-color 0.05s ease;
+
+        &::placeholder {
+            color: $faded-color;
+            opacity: 1;
+        }
+
+        &:focus {
+            border-color: $main-text-color;
+        }
+
+        &.error {
+            border-color: $faded-color-error;
+            color: $red-color;
+
+            &::placeholder {
+                color: $faded-color-error;
+            }
+
+            &:focus {
+                border-color: $red-color;
+            }
+        }
+    }
+
+    & button {
+        cursor: pointer;
+        color: $faded-color;
+        transition: color 0.05s ease;
+        margin-bottom: 10px;
+        border: none;
+
+        &:hover {
+            color: $main-text-color;
+        }
+
+        @include gradient-button($main-gradient-hue-start, $main-gradient-hue-end);
+    }
+
+    & input,
+    & button {
+        font-size: clamp(14px, 2.5lvw, 18px);
+        padding: 10px;
+        border-radius: 7px;
+    }
+
+    & p {
+        font-size: 16px;
+        text-align: center;
+        opacity: 0.8;
+    }
+}
+
+div.logo-wrapper {
+    $pad: 15px;
+
+    user-select: none;
+    position: fixed;
+    top: $pad;
+    left: $pad;
+
+    & img {
+        min-width: 190px;
+        width: 20lvw;
+        max-width: 210px;
+    }
+}
+
+div.credit {
+    position: fixed;
+    font-size: 16px;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0.65;
+
+    & a {
+        color: $main-text-color;
+        text-decoration: none;
+        transition: color 0.03s ease;
+
+        &:hover {
+            color: $main-gradient-hue-end;
+            text-decoration: underline;
+        }
+    }
+}
+
+div.chat-view-wrapper {
+    justify-content: flex-start;
+
+    h1 {
+        margin: 115px 0 0 0;
+    }
+
+    h1 + p {
+        opacity: 0.75;
+    }
+
+    ul {
+        height: calc(100lvh - 390px);
+        word-wrap: break-word;
+        overflow-y: auto;
+        width: 100%;
+        max-width: 500px;
+        padding: 0;
+        padding-right: 10px;
+        list-style-type: none;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+
+        li {
+            border-left: 2px solid $main-text-color;
+            padding-left: 15px;
+            font-size: clamp(14px, 2.5lvw, 18px);
+
+            &.owned {
+                border-color: $green-color;
+                color: $green-color;
+            }
+
+            div.source {
+                margin-bottom: 8px;
+                font-weight: bold;
+            }
+
+            div.content {
+                color: $main-text-color;
+            }
+        }
+    }
+
+    div.input-wrapper {
+        min-width: 300px;
+        width: 50lvw;
+        max-width: 500px;
+
+        button {
+            width: 100%;
+        }
+
+        & > div.button-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+    }
+}
