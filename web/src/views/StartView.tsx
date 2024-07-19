@@ -1,27 +1,17 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
-import Views, { ViewProps } from "../models/views"
 import Message, { MessageEvent } from "../models/message"
 import Logo from "../components/Logo"
 import Typer from "../components/Typer"
 
 const nameRegex = /^[a-zA-Z0-9]{3,16}$/
 
-const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
+type StartViewProps = {
+  send: (data: string) => void
+}
+
+const StartView: React.FC<StartViewProps> = ({ send }) => {
   const [name, setName] = useState("")
-
-  useEffect(() => {
-    const eventHandler = (event: globalThis.MessageEvent) => {
-      const data: Message = JSON.parse(event.data)
-
-      if (data.event === MessageEvent.Enqueued) {
-        setView(Views.Queue)
-      }
-    }
-
-    socket.addEventListener("message", eventHandler)
-    return () => socket.removeEventListener("message", eventHandler)
-  }, [socket, setView])
 
   const join = () => {
     if (!name) {
@@ -39,7 +29,7 @@ const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
       body: name.trim()
     }
 
-    socket.send(JSON.stringify(message))
+    send(JSON.stringify(message))
   }
 
   return (

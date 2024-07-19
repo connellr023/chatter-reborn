@@ -1,34 +1,28 @@
 import { useEffect, useState } from "react"
-import Views, { ViewProps } from "../models/views"
+
+import Views from "../models/views"
 import Message, { MessageEvent } from "../models/message"
 import Chat from "../models/chat"
 import Logo from "../components/Logo"
 
 const chatRegex = /^[a-zA-Z0-9 .,!?'"@#%^&*()_+-=;:~`]*$/
 
-const ChatView: React.FC<ViewProps<string[]>> = ({ socket, setView, meta }) => {
+type ChatViewProps = {
+  participants: string[],
+  setView: (view: Views) => void,
+  addSocketListener: (event: string, callback: (body: Chat) => void) => void,
+  removeSocketListener: (event: string) => void,
+  send: (data: string) => void
+}
+
+const ChatView: React.FC<ChatViewProps> = ({ participants, addSocketListener, removeSocketListener, send }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [chat, setChat] = useState("")
 
   useEffect(() => {
-    const eventHandler = (event: globalThis.MessageEvent) => {
-      const data: Message<Chat> = JSON.parse(event.data)
-
-      switch (data.event) {
-        case MessageEvent.Chat:
-          setChats((prevChats) => [...prevChats, data.body])
-          break
-        case MessageEvent.Enqueued:
-          setView(Views.Queue)
-          break
-        default:
-          break
-      }
-    }
-
-    socket.addEventListener("message", eventHandler)
-    return () => socket.removeEventListener("message", eventHandler)
-  }, [socket, setChats, setView])
+    addSocketListener("chat", (chat) => setChats((prevChats) => [...prevChats, chat]))
+    return () => removeSocketListener("chat")
+  }, [addSocketListener, removeSocketListener])
 
   const sendChat = () => {
     if (!chatRegex.test(chat) || chat.length === 0) {
@@ -41,7 +35,7 @@ const ChatView: React.FC<ViewProps<string[]>> = ({ socket, setView, meta }) => {
       body: chat.trim()
     }
 
-    socket.send(JSON.stringify(message))
+    send(JSON.stringify(message))
     setChat("")
   }
 
@@ -49,7 +43,7 @@ const ChatView: React.FC<ViewProps<string[]>> = ({ socket, setView, meta }) => {
     <>
       <Logo />
       <div className="flex-wrapper chat-view-wrapper">
-        <h1>You are chatting with {meta?.join(", ")}!</h1>
+        <h1>You are chatting with {participants.join(", ")}!</h1>
         <p>Say <b>hi</b> by typing in the message box below...</p>
         <div className="input-wrapper">
           <input
@@ -64,7 +58,7 @@ const ChatView: React.FC<ViewProps<string[]>> = ({ socket, setView, meta }) => {
           </div>
           <ul>
             {chats.map((chat, index) => (
-              <li key={index} className={meta?.includes(chat.source) ? "" : "owned"}>
+              <li key={index} className={participants.includes(chat.source) ? "" : "owned"}>
                 <div className="source">{chat.source}</div>
                 <div className="content">{chat.content}</div>
               </li>
