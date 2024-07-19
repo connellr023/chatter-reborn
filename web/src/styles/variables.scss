@@ -5,13 +5,17 @@ $main-font: "Ubuntu", sans-serif;
 $main-gradient-hue-start: #2a273f;
 $main-gradient-hue-end: #645c96;
 
+$green-color: #15d154;
+
 @mixin gradient-button($c1, $c2) {
-    $darken-amount: 12%;
-    $direction: to top;
+    & {
+        $darken-amount: 12%;
+        $direction: to top;
 
-    background: linear-gradient($direction, $c1, $c2);
+        background: linear-gradient($direction, $c1, $c2);
 
-    &:active:enabled, &:disabled {
-        background: linear-gradient($direction, darken($c1, $darken-amount), darken($c2, $darken-amount));
+        &:active:enabled, &:disabled {
+            background: linear-gradient($direction, darken($c1, $darken-amount), darken($c2, $darken-amount));
+        }
     }
 }

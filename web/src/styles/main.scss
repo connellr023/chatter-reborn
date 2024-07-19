@@ -15,14 +15,14 @@ div.flex-wrapper {
     height: 100lvh;
 }
 
-div.start-input-wrapper {
+div.input-wrapper {
     display: flex;
     justify-content: center;
     flex-direction: column;
 
     $faded-color: darken($main-text-color, 30%);
 
-    input {
+    & input {
         margin-top: 15px;
         margin-bottom: 13px;
         color: $main-text-color;
@@ -41,9 +41,7 @@ div.start-input-wrapper {
         }
     }
 
-    button {
-        @include gradient-button($main-gradient-hue-start, $main-gradient-hue-end);
-
+    & button {
         cursor: pointer;
         color: $faded-color;
         transition: color 0.05s ease;
@@ -53,16 +51,18 @@ div.start-input-wrapper {
         &:hover {
             color: $main-text-color;
         }
+
+        @include gradient-button($main-gradient-hue-start, $main-gradient-hue-end);
     }
 
-    input,
-    button {
+    & input,
+    & button {
         font-size: clamp(14px, 2.5lvw, 18px);
         padding: 10px;
         border-radius: 7px;
     }
 
-    p {
+    & p {
         font-size: 16px;
         text-align: center;
         opacity: 0.8;
@@ -77,7 +77,7 @@ div.logo-wrapper {
     top: $pad;
     left: $pad;
 
-    img {
+    & img {
         min-width: 190px;
         width: 20lvw;
         max-width: 210px;
@@ -92,7 +92,7 @@ div.credit {
     transform: translateX(-50%);
     opacity: 0.65;
 
-    a {
+    & a {
         color: $main-text-color;
         text-decoration: none;
         transition: color 0.03s ease;
@@ -100,6 +100,71 @@ div.credit {
         &:hover {
             color: $main-gradient-hue-end;
             text-decoration: underline;
+        }
+    }
+}
+
+div.chat-view-wrapper {
+    justify-content: flex-start;
+
+    h1 {
+        margin: 115px 0 0 0;
+    }
+
+    h1 + p {
+        opacity: 0.75;
+    }
+
+    ul {
+        height: calc(100lvh - 390px);
+        word-wrap: break-word;
+        overflow-y: auto;
+        width: 100%;
+        max-width: 500px;
+        padding: 0;
+        padding-right: 10px;
+        list-style-type: none;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+
+        li {
+            border-left: 2px solid $main-text-color;
+            padding-left: 15px;
+            font-size: clamp(14px, 2.5lvw, 18px);
+
+            &.owned {
+                border-color: $green-color;
+                color: $green-color;
+            }
+
+            div.source {
+                margin-bottom: 8px;
+                font-weight: bold;
+            }
+
+            div.content {
+                color: $main-text-color;
+            }
+        }
+    }
+
+    div.input-wrapper {
+        min-width: 300px;
+        width: 50lvw;
+        max-width: 500px;
+
+        button {
+            width: 100%;
+        }
+
+        & > div.button-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
         }
     }
 }

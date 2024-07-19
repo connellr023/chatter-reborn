@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import Views, { ViewProps } from "../models/views"
 import Message, { MessageEvent } from "../models/message"
 import Chat from "../models/chat"
+import Logo from "../components/Logo"
 
 const chatRegex = /^[a-zA-Z0-9 .,!?'"@#%^&*()_+-=;:~`]*$/
 
@@ -45,28 +46,33 @@ const ChatView: React.FC<ViewProps<string[]>> = ({ socket, setView, meta }) => {
   }
 
   return (
-    <div className="flex-wrapper">
-      <h1>Chat</h1>
-      <div>
-        <p>You are chatting with {meta?.join(", ")}</p>
-        <input
-          value={chat}
-          onChange={(e) => setChat(e.target.value)}
-          placeholder="Type your message here"
-        />
-        <button onClick={sendChat}>Send</button>
-        <button>Skip</button>
-        <button>Disconnect</button>
-        <ul>
-          {chats.map((chat, index) => (
-            <li key={index}>
-              <p>{chat.source}</p>
-              <p>{chat.content}</p>
-            </li>
-          ))}
-        </ul>
+    <>
+      <Logo />
+      <div className="flex-wrapper chat-view-wrapper">
+        <h1>You are chatting with {meta?.join(", ")}!</h1>
+        <p>Say <b>hi</b> by typing in the message box below...</p>
+        <div className="input-wrapper">
+          <input
+            value={chat}
+            onChange={(e) => setChat(e.target.value)}
+            placeholder="Type your message here"
+          />
+          <div className="button-wrapper">
+            <button onClick={sendChat}>Send</button>
+            <button>Skip</button>
+            <button>Disconnect</button>
+          </div>
+          <ul>
+            {chats.map((chat, index) => (
+              <li key={index} className={meta?.includes(chat.source) ? "" : "owned"}>
+                <div className="source">{chat.source}</div>
+                <div className="content">{chat.content}</div>
+              </li>
+            )).reverse()}
+          </ul>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 

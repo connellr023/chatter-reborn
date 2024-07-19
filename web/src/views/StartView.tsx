@@ -47,7 +47,7 @@ const StartView: React.FC<ViewProps> = ({ socket, setView }) => {
       <Logo />
       <div className="flex-wrapper">
         <h1><Typer value="Welcome" ms={170} /></h1>
-        <div className="start-input-wrapper">
+        <div className="input-wrapper">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
