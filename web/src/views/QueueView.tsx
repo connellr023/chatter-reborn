@@ -3,13 +3,13 @@ import Views, { ViewProps } from "../models/views"
 import Message, { MessageEvent } from "../models/message"
 import Logo from "../components/Logo"
 
-const QueueView: React.FC<ViewProps> = ({ socket, setView }) => {
+const QueueView: React.FC<ViewProps<undefined, string[]>> = ({ socket, setView }) => {
   useEffect(() => {
     const eventHandler = (event: globalThis.MessageEvent) => {
       const data: Message<string[]> = JSON.parse(event.data)
 
       if (data.event === MessageEvent.Joined) {
-        setView(Views.Chat)
+        setView(Views.Chat, data.body)
       }
     }
 

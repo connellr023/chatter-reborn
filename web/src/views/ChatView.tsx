@@ -5,7 +5,7 @@ import Chat from "../models/chat"
 
 const chatRegex = /^[a-zA-Z0-9 .,!?'"@#%^&*()_+-=;:~`]*$/
 
-const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
+const ChatView: React.FC<ViewProps<string[]>> = ({ socket, setView, meta }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [chat, setChat] = useState("")
 
@@ -30,7 +30,7 @@ const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
   }, [socket, setChats, setView])
 
   const sendChat = () => {
-    if (!chatRegex.test(chat)) {
+    if (!chatRegex.test(chat) || chat.length === 0) {
       alert("Invalid chat message")
       return
     }
@@ -48,6 +48,7 @@ const ChatView: React.FC<ViewProps> = ({ socket, setView }) => {
     <div className="flex-wrapper">
       <h1>Chat</h1>
       <div>
+        <p>You are chatting with {meta?.join(", ")}</p>
         <input
           value={chat}
           onChange={(e) => setChat(e.target.value)}

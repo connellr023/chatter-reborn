@@ -12,6 +12,7 @@ const App = () => {
   const [isSocketConnected, setIsSocketConnected] = useState(false)
 
   const socketRef = useRef<WebSocket | null>(null)
+  const chatMetaRef = useRef<string[]>([])
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:3000/api/connect")
@@ -53,10 +54,15 @@ const App = () => {
     switch (view) {
       case Views.Start:
         return <StartView socket={socketRef.current!} setView={setView} />
-      case Views.Chat:
-        return <ChatView socket={socketRef.current!} setView={setView} />
       case Views.Queue:
-        return <QueueView socket={socketRef.current!} setView={setView} />
+        return <QueueView socket={socketRef.current!} setView={(view, meta) => {
+          setView(view)
+          if (meta) {
+            chatMetaRef.current = meta
+          }
+        }} />
+      case Views.Chat:
+        return <ChatView socket={socketRef.current!} setView={setView} meta={chatMetaRef.current} />
       case Views.Error:
         return <ErrorView />
     }
