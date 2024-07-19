@@ -6,7 +6,7 @@ import Logo from "../components/Logo"
 const QueueView: React.FC<ViewProps> = ({ socket, setView }) => {
   useEffect(() => {
     const eventHandler = (event: globalThis.MessageEvent) => {
-      const data: Message = JSON.parse(event.data)
+      const data: Message<string[]> = JSON.parse(event.data)
 
       if (data.event === MessageEvent.Joined) {
         setView(Views.Chat)
