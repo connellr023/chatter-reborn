@@ -3,9 +3,8 @@ import { useSocket } from "./hooks/useSocket"
 
 import Views from "./models/views"
 import StartView from "./views/StartView"
-import QueueView from "./views/QueueView"
+import MessageView from "./views/MessageView"
 import ChatView from "./views/ChatView"
-import ErrorView from "./views/ErrorView"
 import Credit from "./components/Credit"
 import { MessageEvent } from "./models/message"
 
@@ -37,16 +36,12 @@ const App = () => {
       console.log("Connected to server")
 
       onClose(() => {
-        setView(Views.Error)
         setIsSocketConnected(false)
-
         console.log("Connection closed")
       })
 
       onError(() => {
-        setView(Views.Error)
         setIsSocketConnected(false)
-
         console.log("Error connecting to server")
       })
 
@@ -74,14 +69,14 @@ const App = () => {
 
   const renderViews = () => {
     if (!isSocketConnected) {
-      return <div>Loading...</div>
+      return <MessageView message="Connecting to endpoint..." />
     }
 
     switch (view) {
       case Views.Start:
         return <StartView send={send} />
       case Views.Queue:
-        return <QueueView />
+        return <MessageView message="Waiting for a match..." />
       case Views.Chat:
         return <ChatView
           addSocketListener={addListener}
@@ -90,8 +85,6 @@ const App = () => {
           participants={participantsRef.current}
           send={send}
         />
-      case Views.Error:
-        return <ErrorView />
     }
   }
 

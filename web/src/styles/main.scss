@@ -21,6 +21,7 @@ div.input-wrapper {
     flex-direction: column;
 
     $faded-color: darken($main-text-color, 30%);
+    $faded-color-error: darken($red-color, 30%);
 
     & input {
         margin-top: 15px;
@@ -38,6 +39,19 @@ div.input-wrapper {
 
         &:focus {
             border-color: $main-text-color;
+        }
+
+        &.error {
+            border-color: $faded-color-error;
+            color: $red-color;
+
+            &::placeholder {
+                color: $faded-color-error;
+            }
+
+            &:focus {
+                border-color: $red-color;
+            }
         }
     }
 

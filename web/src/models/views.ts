@@ -1,8 +1,7 @@
 enum Views {
   Start,
   Queue,
-  Chat,
-  Error
+  Chat
 }
 
 export default Views;

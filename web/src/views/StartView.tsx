@@ -12,15 +12,20 @@ type StartViewProps = {
 
 const StartView: React.FC<StartViewProps> = ({ send }) => {
   const [name, setName] = useState("")
+  const [isError, setIsError] = useState(false)
+  const [isDisabled, setIsDisabled] = useState(true)
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isValid = nameRegex.test(e.target.value) && e.target.value.length > 0
+
+    setIsError(!isValid)
+    setIsDisabled(!isValid)
+    setName(e.target.value)
+  }
 
   const join = () => {
     if (!name) {
       alert("Please enter a name")
-      return
-    }
-
-    if (!nameRegex.test(name)) {
-      alert("Name must be between 3 and 16 characters and contain only letters and numbers")
       return
     }
 
@@ -39,11 +44,12 @@ const StartView: React.FC<StartViewProps> = ({ send }) => {
         <h1><Typer value="Welcome" ms={170} /></h1>
         <div className="input-wrapper">
           <input
+            className={isError ? "error" : ""}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={handleNameChange}
             placeholder="Your name..."
           />
-          <button onClick={join}>Join</button>
+          <button onClick={join} disabled={isDisabled}>Join</button>
           <p>Enter a name above to start chatting</p>
         </div>
       </div>

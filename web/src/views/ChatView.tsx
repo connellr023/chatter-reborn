@@ -18,6 +18,8 @@ type ChatViewProps = {
 const ChatView: React.FC<ChatViewProps> = ({ participants, addSocketListener, removeSocketListener, send }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [chat, setChat] = useState("")
+  const [isError, setIsError] = useState(false)
+  const [isDisabled, setIsDisabled] = useState(true)
 
   useEffect(() => {
     addSocketListener("chat", (chat) => setChats((prevChats) => [...prevChats, chat]))
@@ -25,18 +27,24 @@ const ChatView: React.FC<ChatViewProps> = ({ participants, addSocketListener, re
   }, [addSocketListener, removeSocketListener])
 
   const sendChat = () => {
-    if (!chatRegex.test(chat) || chat.length === 0) {
-      alert("Invalid chat message")
-      return
-    }
-
     const message: Message = {
       event: MessageEvent.Chat,
       body: chat.trim()
     }
 
     send(JSON.stringify(message))
+
+    setIsDisabled(true)
+    setIsError(false)
     setChat("")
+  }
+
+  const handleChatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isValid = chatRegex.test(e.target.value) && e.target.value.length > 0
+
+    setIsError(!isValid)
+    setIsDisabled(!isValid)
+    setChat(e.target.value)
   }
 
   return (
@@ -47,12 +55,13 @@ const ChatView: React.FC<ChatViewProps> = ({ participants, addSocketListener, re
         <p>Say <b>hi</b> by typing in the message box below...</p>
         <div className="input-wrapper">
           <input
+            className={isError ? "error" : ""}
             value={chat}
-            onChange={(e) => setChat(e.target.value)}
+            onChange={handleChatChange}
             placeholder="Type your message here"
           />
           <div className="button-wrapper">
-            <button onClick={sendChat}>Send</button>
+            <button onClick={sendChat} disabled={isDisabled}>Send</button>
             <button>Skip</button>
             <button>Disconnect</button>
           </div>

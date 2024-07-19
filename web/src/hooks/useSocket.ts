@@ -21,7 +21,7 @@ export const useSocket = () => {
     socket.current.addEventListener("error", callback)
   }
 
-  const addListener = <T>(event: string, callback: (body: T) => void) => {
+  const addListener = <T = unknown>(event: string, callback: (body: T) => void) => {
     listners.current.set(event, callback as (body: unknown) => void)
   }
 
