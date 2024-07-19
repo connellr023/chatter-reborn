@@ -154,6 +154,21 @@ fn handle_message(
 
               state |> actor.continue
             }
+            "skip" -> {
+              let new_state = cleanup(state)
+              request_enqueue(connection, new_state)
+
+              new_state |> actor.continue
+            }
+            "disconnect" -> {
+              let new_state = cleanup(state)
+              let new_state = WebsocketActorState(
+                ..new_state,
+                name: None
+              )
+
+              new_state |> actor.continue
+            }
             _ -> state |> actor.continue
           }
         Error(_) -> {
@@ -181,6 +196,7 @@ fn send_client_json(connection: WebsocketConnection, json: Json) {
   Nil
 }
 
+/// Sends a request to the queue actor to enqueue this actor to be matched
 fn request_enqueue(connection: WebsocketConnection, state: WebsocketActorState) {
   {
     use name <- option.then(state.name)
@@ -196,10 +212,23 @@ fn request_enqueue(connection: WebsocketConnection, state: WebsocketActorState) 
   Nil
 }
 
-fn cleanup(state: WebsocketActorState) {
-  process.send(state.queue_subject, DequeueUser(state.ws_subject))
+/// Cleans up any connections this actor has with the queue and room actors
+/// Returns an updated state reflecting the removal of these connections
+fn cleanup(state: WebsocketActorState) -> WebsocketActorState {
+  {
+    use _ <- option.then(state.name)
+    Some(process.send(state.queue_subject, DequeueUser(state.ws_subject)))
+  }
 
-  option.then(state.room_subject, fn(room_subject) {
-    Some(process.send(room_subject, DisconnectUser(state.ws_subject)))
-  })
+  case state.room_subject {
+    Some(room_subject) -> {
+      process.send(room_subject, DisconnectUser(state.ws_subject))
+
+      WebsocketActorState(
+        ..state,
+        room_subject: None
+      )
+    }
+    None -> state
+  }
 }
