@@ -10,6 +10,10 @@
 
 <br />
 
+## Deployment
+
+This demonstration project is deployed **On Render** ![here](https://chatter-5dkr.onrender.com/).
+
 ## Overview
 
 This project is a re-implementation of a previous version I developed with **Node.js**, now using **Gleam** (compiled to **Erlang**). The underlying architecture has been entirely redesigned, as described below.
