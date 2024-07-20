@@ -8,6 +8,7 @@ body {
 }
 
 div.flex-wrapper {
+    text-align: center;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -122,15 +123,20 @@ div.chat-view-wrapper {
     justify-content: flex-start;
 
     h1 {
-        margin: 115px 0 0 0;
+        margin: 115px 0 20px 0;
+        padding: 0 20px;
+        word-wrap: break-word;
     }
 
-    h1 + p {
+    p {
+        padding: 0 20px;
+        margin: 5px;
         opacity: 0.75;
     }
 
     ul {
-        height: calc(100lvh - 390px);
+        text-align: left;
+        height: calc(100lvh - 435px);
         word-wrap: break-word;
         overflow-y: auto;
         width: 100%;
@@ -167,6 +173,7 @@ div.chat-view-wrapper {
         min-width: 300px;
         width: 50lvw;
         max-width: 500px;
+        margin-top: 10px;
 
         button {
             width: 100%;

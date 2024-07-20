@@ -162,10 +162,7 @@ fn handle_message(
             }
             "disconnect" -> {
               let new_state = cleanup(state)
-              let new_state = WebsocketActorState(
-                ..new_state,
-                name: None
-              )
+              let new_state = WebsocketActorState(..new_state, name: None)
 
               new_state |> actor.continue
             }
@@ -224,10 +221,7 @@ fn cleanup(state: WebsocketActorState) -> WebsocketActorState {
     Some(room_subject) -> {
       process.send(room_subject, DisconnectUser(state.ws_subject))
 
-      WebsocketActorState(
-        ..state,
-        room_subject: None
-      )
+      WebsocketActorState(..state, room_subject: None)
     }
     None -> state
   }

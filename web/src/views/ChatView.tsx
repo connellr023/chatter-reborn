@@ -72,6 +72,7 @@ const ChatView: React.FC<ChatViewProps> = ({ participants, setView, addSocketLis
       <div className="flex-wrapper chat-view-wrapper">
         <h1>You are chatting with {participants.join(", ")}!</h1>
         <p>Say <b>hi</b> by typing in the message box below...</p>
+        <p><b>Note:</b> Skipping when the queue is empty will instantly match you with the same person again.</p>
         <div className="input-wrapper">
           <input
             className={isError ? "error" : ""}
