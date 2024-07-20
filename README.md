@@ -12,7 +12,7 @@
 
 ## Deployment
 
-This demonstration project is deployed **On Render** ![here](https://chatter-5dkr.onrender.com/).
+This demonstration project is deployed **On Render** <a href="https://chatter-5dkr.onrender.com/">here</a>
 
 ## Overview
 
