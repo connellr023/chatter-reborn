@@ -1,15 +1,18 @@
+import gleam/int
 import actors/queue_actor
 import actors/websocket_actor
 import gleam/bytes_builder
 import gleam/erlang/process
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
+import gleam/io
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 import mist.{type Connection, type ResponseData, Bytes}
 
 const port: Int = 3000
+
 const build_path: String = "dist"
 
 pub fn main() {
@@ -26,6 +29,10 @@ pub fn main() {
     }
     |> mist.new
     |> mist.port(port)
+    |> mist.after_start(fn(_, _) {
+      { "Listening on port: " <> { port |> int.to_string } }
+      |> io.println
+    })
     |> mist.start_http
 
   process.sleep_forever()
