@@ -1,10 +1,10 @@
-import gleam/int
 import actors/queue_actor
 import actors/websocket_actor
 import gleam/bytes_builder
 import gleam/erlang/process
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
+import gleam/int
 import gleam/io
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -12,17 +12,15 @@ import gleam/string
 import mist.{type Connection, type ResponseData, Bytes}
 
 const port: Int = 3000
-
 const build_path: String = "dist"
 
 pub fn main() {
   let queue_actor = queue_actor.start()
-  let selector = process.new_selector()
 
   let assert Ok(_) =
     fn(req: Request(Connection)) -> Response(ResponseData) {
       case request.path_segments(req) {
-        ["api", "connect"] -> websocket_actor.start(req, selector, queue_actor)
+        ["api", "connect"] -> websocket_actor.start(req, queue_actor)
         [] -> serve_file([build_path, "index.html"])
         path -> serve_file([build_path, ..path])
       }
@@ -39,7 +37,8 @@ pub fn main() {
 }
 
 fn not_found() -> Response(ResponseData) {
-  response.new(404)
+  404
+  |> response.new
   |> response.set_body(Bytes(bytes_builder.new()))
 }
 

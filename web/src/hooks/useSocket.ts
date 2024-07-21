@@ -2,6 +2,10 @@ import { useRef } from "react"
 
 import Message from "../models/message"
 
+const endpoint = import.meta.env.DEV
+  ? "ws://localhost:3000/api/connect"
+  : `wss://${window.location.host}/api/connect`
+
 export const useSocket = () => {
   const socket = useRef<WebSocket | null>(null)
   const listners = useRef(new Map<string, (body: unknown) => void>())
@@ -39,7 +43,7 @@ export const useSocket = () => {
   }
 
   const start = () => {
-    socket.current = new WebSocket("ws://localhost:3000/api/connect")
+    socket.current = new WebSocket(endpoint)
     socket.current.addEventListener("message", eventHandler)
   }
 

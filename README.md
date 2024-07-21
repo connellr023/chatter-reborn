@@ -16,7 +16,7 @@ This demonstration project is deployed **On Render** <a href="https://chatter-5d
 
 ## Overview
 
-This project is a re-implementation of a previous version I developed with **Node.js**, now using **Gleam** (compiled to **Erlang**). The underlying architecture has been entirely redesigned, as described below.
+This project is a variation of a previous project, **Chatter**, re-implemented in **Gleam**. This version is essentially just the text chat aspect of **Omegle** (which no longer exists). It allows users to speed chat with random strangers in real-time.
 
 ## Why Re-Implement in Gleam?
 
@@ -26,6 +26,7 @@ I chose to re-implement this project in **Gleam** for several reasons:
 - **Type Safety**: Type safety is crucial for me, and Gleam offers strong type guarantees, unlike the dynamically typed **Erlang** and **Elixir**.
 - **Familiar Syntax**: As someone who enjoys the **Rust** programming language, I found Gleam’s syntax familiar, which eased my transition into functional programming.
 - **Simplicity and Concurrency**: Gleam is simple to pick up and excels at creating concurrent applications. It outperforms **Node.js** (single-threaded) and **Rust** (with its complex async programming model) in this regard.
+- Gleam can take full advantage of the **Open Telecom Platform (OTP)**, which is perfect for this application.
 
 ## Chatter API Actor Model
 

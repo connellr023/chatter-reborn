@@ -3,7 +3,7 @@ import actors/actor_messages.{
   DequeueUser, Disconnect, DisconnectUser, EnqueueUser, JoinRoom, SendToAll,
   SendToClient,
 }
-import gleam/erlang/process.{type Selector, type Subject, Normal}
+import gleam/erlang/process.{type Subject, Normal}
 import gleam/function
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
@@ -31,7 +31,6 @@ pub opaque type WebsocketActorState {
 
 pub fn start(
   req: Request(Connection),
-  selector: Selector(CustomWebsocketMessage),
   queue_subject: Subject(QueueActorMessage),
 ) -> Response(ResponseData) {
   mist.websocket(
@@ -41,7 +40,7 @@ pub fn start(
 
       let ws_subject = process.new_subject()
       let new_selector =
-        selector
+        process.new_selector()
         |> process.selecting(ws_subject, function.identity)
 
       let state =

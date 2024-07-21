@@ -37,7 +37,7 @@ WORKDIR /api
 COPY api/ ./
 
 # Copy the built frontend from the previous stage
-COPY --from=frontend-builder /app/dist ./web/dist
+COPY --from=frontend-builder /app/dist ./dist
 
 # Compile the Gleam webserver
 RUN gleam build
