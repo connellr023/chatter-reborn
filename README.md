@@ -14,9 +14,13 @@
 
 This demonstration project is deployed **On Render** <a href="https://chatter-5dkr.onrender.com/">here</a>
 
+<br />
+
 ## Overview
 
 This project is a variation of a previous project, **Chatter**, re-implemented in **Gleam**. This version is essentially just the text chat aspect of **Omegle** (which no longer exists). It allows users to speed chat with random strangers in real-time.
+
+<br />
 
 ## Why Re-Implement in Gleam?
 
@@ -25,27 +29,15 @@ I chose to re-implement this project in **Gleam** for several reasons:
 - **Learning Functional Programming**: I wanted to start learning functional programming, and Gleam provides a great opportunity to do so.
 - **Type Safety**: Type safety is crucial for me, and Gleam offers strong type guarantees, unlike the dynamically typed **Erlang** and **Elixir**.
 - **Familiar Syntax**: As someone who enjoys the **Rust** programming language, I found Gleam’s syntax familiar, which eased my transition into functional programming.
-- **Simplicity and Concurrency**: Gleam is simple to pick up and excels at creating concurrent applications. It outperforms **Node.js** (single-threaded) and **Rust** (with its complex async programming model) in this regard.
-- Gleam can take full advantage of the **Open Telecom Platform (OTP)**, which is perfect for this application.
+- **Simplicity and Concurrency**: Gleam is simple to pick up and excels at creating concurrent applications.
 
-## Chatter API Actor Model
+<br />
 
-![Actor Model Diagram](public/diagram.png)
+# Screenshots
 
-In **Erlang**-based languages, concurrent applications typically use the **Actor Model**. Here’s how it works:
-
-- **Actors as Processes**: Each actor is an independent process with its own thread and memory resources, managed by the **BEAM VM**.
-- **Mailboxes and Messaging**: Actors communicate through mailboxes. In **Gleam**, mailboxes are addressed via a *subject* (similar to *PID* in **Erlang** and **Elixir**).
-- **Concurrency Without Shared Memory**: Since actors do not share memory, there is no need for concurrency primitives like *Mutexes*, reducing complexity and potential issues.
-- **Encapsulation and Scalability**: The Actor Model inherently provides separation of concerns by encapsulating logic within each actor, enabling scalable and reliable system development.
-
-## Conclusion
-
-This project demonstrates the advantages of using **Gleam** for building concurrent applications. It showcases the simplicity, type safety, and powerful concurrency model that **Gleam** offers.
-
----
-
-This version aims to be clear and concise, emphasizing the benefits of using Gleam and explaining the Actor Model in a straightforward manner.
+![Main Screen](public/main.png)
+![Queue Screen](public/queue.png)
+![Chat Screen](public/chat.png)
 
 <br />
 <br />
